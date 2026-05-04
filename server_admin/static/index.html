@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Admin Dashboard – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div>
+            <a class="sidebar-link active" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link" href="/halls.html"><span class="icon">🏛️</span>Halls</a>
+            <a class="sidebar-link" href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a>
+            <a class="sidebar-link" href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link" href="/vendors.html"><span class="icon">🏪</span>Vendors</a>
+            <a class="sidebar-link" href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link" href="#" onclick="openModal('pw-modal-overlay');return false;"><span
+                    class="icon">🔑</span>Security</a>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main-content">
+            <div class="page-title">Admin Dashboard</div>
+            <p class="page-subtitle">Platform-wide overview — TN Events</p>
+
+            <!-- Stats Grid -->
+            <div class="stat-grid" id="stats-grid">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="panel" style="margin-bottom:1.5rem">
+                <div class="section-header">
+                    <div class="section-title">Quick Actions</div>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:.75rem">
+                    <a href="/vendors.html" class="btn btn-primary">🏪 Approve Vendors</a>
+                    <a href="/halls.html" class="btn btn-secondary">🏛️ Manage Halls</a>
+                    <a href="/catering.html" class="btn btn-secondary">🍽️ Manage Catering</a>
+                    <a href="/bookings.html" class="btn btn-secondary">📋 View All Bookings</a>
+                </div>
+            </div>
+
+            <!-- Pending Vendors Alert -->
+            <div class="panel" id="pending-vendors-panel"
+                style="display:none;border-color:rgba(245,166,35,.4); background:rgba(245,166,35,.05)">
+                <div style="display:flex;align-items:center;gap:.75rem">
+                    <span style="font-size:1.5rem">⚠️</span>
+                    <div>
+                        <div style="font-weight:700;color:var(--clr-text)">Pending Vendor Approvals</div>
+                        <div style="color:var(--clr-muted);font-size:.9rem" id="pending-count-msg"></div>
+                    </div>
+                    <a href="/vendors.html" class="btn btn-primary btn-sm" style="margin-left:auto">Review Now →</a>
+                </div>
+            </div>
+
+            <!-- Recent Bookings -->
+            <div class="panel">
+                <div class="section-header">
+                    <div class="section-title">Recent Bookings</div>
+                    <a href="/bookings.html" class="btn btn-outline btn-sm">View All →</a>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Service</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookings-body">
+                            <tr>
+                                <td colspan="7" class="loading-state">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const SERVICE_ICONS = { hall: '🏛️', catering: '🍽️', luxury_car: '🚗', photography: '📸', decorations: '🌸' };
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { location.href = '/login.html'; return; }
+            } catch (e) { location.href = '/login.html'; return; }
+            loadStats();
+            loadRecentBookings();
+        });
+
+        async function loadStats() {
+            try {
+                const s = await fetch('/api/admin/stats').then(r => r.json());
+                document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card"><div class="stat-icon blue">👥</div><div class="stat-info"><div class="value">${s.total_users}</div><div class="label">Users</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">🏪</div><div class="stat-info"><div class="value">${s.total_vendors}</div><div class="label">Active Vendors</div></div></div>
+        <div class="stat-card"><div class="stat-icon gold">⏳</div><div class="stat-info"><div class="value">${s.pending_vendors}</div><div class="label">Pending Vendors</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">📋</div><div class="stat-info"><div class="value">${s.total_bookings}</div><div class="label">Total Bookings</div></div></div>
+        <div class="stat-card"><div class="stat-icon red">⏳</div><div class="stat-info"><div class="value">${s.pending_bookings}</div><div class="label">Pending Bookings</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-info"><div class="value">₹${Number(s.total_revenue).toLocaleString()}</div><div class="label">Revenue</div></div></div>
+        <div class="stat-card"><div class="stat-icon blue">🏛️</div><div class="stat-info"><div class="value">${s.total_halls}</div><div class="label">Halls</div></div></div>`;
+                if (s.pending_vendors > 0) {
+                    document.getElementById('pending-vendors-panel').style.display = 'flex';
+                    document.getElementById('pending-count-msg').textContent = `${s.pending_vendors} vendor(s) are waiting for approval.`;
+                }
+            } catch (e) { document.getElementById('stats-grid').innerHTML = '<p style="color:var(--clr-muted)">Failed to load stats.</p>'; }
+        }
+
+        async function loadRecentBookings() {
+            const tbody = document.getElementById('bookings-body');
+            try {
+                const bookings = await fetch('/api/admin/bookings').then(r => r.json());
+                if (!bookings.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No bookings yet.</td></tr>'; return; }
+                tbody.innerHTML = bookings.slice(0, 15).map(b => `
+        <tr>
+          <td>#${b.id}</td>
+          <td>${esc(b.customer_name || '—')}</td>
+          <td>${SERVICE_ICONS[b.service_type] || '📦'} ${esc((b.service_name || '').substring(0, 22))}</td>
+          <td><span class="badge">${esc(b.service_type.replace('_', ' '))}</span></td>
+          <td>${formatDate(b.date)}</td>
+          <td>${formatCurrency(b.total_amount)}</td>
+          <td>${statusBadge(b.status)}</td>
+        </tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load.</td></tr>'; }
+        }
+    </script>
+</body>
+
+</html>

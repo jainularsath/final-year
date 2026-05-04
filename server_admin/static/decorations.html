@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Manage Decorations – Admin</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div><a class="sidebar-link" href="/index.html"><span
+                    class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link" href="/halls.html"><span class="icon">🏛️</span>Halls</a><a class="sidebar-link"
+                href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a><a class="sidebar-link"
+                href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link active" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link" href="/vendors.html"><span class="icon">🏪</span>Vendors</a><a class="sidebar-link"
+                href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div><a class="sidebar-link sidebar-logout" href="/api/logout"><span
+                    class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">Manage Decorations</div>
+            <p class="page-subtitle">View or remove decoration themes</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Theme</th>
+                            <th>Religion</th>
+                            <th>Culture</th>
+                            <th>City</th>
+                            <th>Base Price</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="decor-body">
+                        <tr>
+                            <td colspan="7" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => { const r = await fetch('/api/me'); if (!r.ok) { location.href = '/login.html'; return; } loadDecor(); });
+        async function loadDecor() {
+            const tbody = document.getElementById('decor-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><div class="spinner"></div></td></tr>';
+            try {
+                const items = await fetch('/api/admin/decorations').then(r => r.json());
+                if (!items.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No decoration themes found.</td></tr>'; return; }
+                tbody.innerHTML = items.map(d => `<tr><td>#${d.id}</td><td><strong>${esc(d.theme_name)}</strong></td>
+        <td>${esc(d.religion_style || '—')}</td><td>${esc(d.culture_style || '—')}</td><td>${esc(d.city)}</td>
+        <td style="color:var(--clr-gold);font-weight:700">₹${Number(d.base_price).toLocaleString()}</td>
+        <td>${statusBadge(d.status || 'pending')}</td>
+        <td>
+          <div style="display:flex;gap:.3rem">
+          ${(!d.status || d.status === 'pending') ? `
+            <button class="btn btn-sm" style="background:#22c55e" onclick="updateStatus('decorations', ${d.id}, 'approved')">Approve</button>
+            <button class="btn btn-sm" style="background:#ef4444" onclick="updateStatus('decorations', ${d.id}, 'rejected')">Reject</button>
+          ` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteDecor(${d.id},this)">🗑 Remove Service</button>
+          </div>
+        </td></tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed.</td></tr>'; }
+        }
+        async function deleteDecor(id, btn) {
+            if (!confirm('Delete this theme?')) return; btn.disabled = true;
+            try { await fetch(`/api/admin/decorations/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadDecor(); }
+            catch (e) { toast('Error', 'error'); } finally { btn.disabled = false; }
+        }
+
+        async function updateStatus(stype, id, status) {
+            if (!confirm(`Are you sure you want to mark this decoration as ${status}?`)) return;
+            try {
+                const res = await fetch(`/api/admin/${stype}/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (res.ok) { toast(`Decoration ${status}`, 'success'); loadDecor(); }
+                else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
+            } catch (e) { toast('Network error', 'error'); }
+        }
+    </script>
+</body>
+
+</html>

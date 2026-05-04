@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TN Events – Tamil Nadu's Premier Event Booking Platform</title>
+  <meta name="description"
+    content="Book halls, catering, luxury cars, photography & decorations for weddings and events across Tamil Nadu." />
+  <link rel="stylesheet" href="/static/style.css" />
+  <style>
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 2rem 0;
+    }
+
+    .category-card {
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      text-decoration: none;
+    }
+
+    .category-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(245, 166, 35, .4);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, .4);
+    }
+
+    .category-card .cat-icon {
+      font-size: 2.5rem;
+      margin-bottom: .75rem;
+    }
+
+    .category-card .cat-name {
+      font-weight: 700;
+      color: var(--clr-text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+    }
+
+    .category-card .cat-count {
+      font-size: .8rem;
+      color: var(--clr-muted);
+      margin-top: .25rem;
+    }
+
+    .hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .hero-tag {
+      padding: .3rem .9rem;
+      border-radius: 999px;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      color: var(--clr-muted);
+      transition: all var(--transition);
+    }
+
+    .hero-tag:hover {
+      border-color: var(--clr-gold);
+      color: var(--clr-gold);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- SPLASH SCREEN -->
+  <div id="splash-screen"
+    style="position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0f172a;z-index:9999;display:flex;align-items:center;justify-content:center;transition:transform 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.8s ease;flex-direction:column;overflow:hidden;">
+
+    <!-- Unique background shapes -->
+    <div
+      style="position:absolute;width:600px;height:600px;background:var(--clr-gold);filter:blur(150px);opacity:0.2;top:-200px;left:-200px;border-radius:50%;animation:drift 8s infinite alternate;">
+    </div>
+    <div
+      style="position:absolute;width:400px;height:400px;background:var(--clr-red);filter:blur(120px);opacity:0.2;bottom:-100px;right:-100px;border-radius:50%;animation:drift 6s infinite alternate-reverse;">
+    </div>
+
+    <div
+      style="position:relative;text-align:center;animation:slideUpFade 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;">
+      <h1
+        style="font-size:4rem;font-weight:800;color:#ffffff;font-family:'Outfit',sans-serif;text-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+        🎊 <span
+          style="background:var(--gradient-gold);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">TN</span>Events
+      </h1>
+
+      <div
+        style="width:0;height:4px;background:var(--gradient-gold);margin:1.5rem auto 0;border-radius:2px;animation:expandWidth 1.5s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;">
+      </div>
+
+      <p
+        style="color:#94a3b8;margin-top:1.5rem;font-size:1.1rem;font-family:'Outfit',sans-serif;letter-spacing:2px;text-transform:uppercase;opacity:0;animation:fadeInVal 1s 1s forwards;">
+        Curating Your Dream Event</p>
+    </div>
+
+    <style>
+      @keyframes slideUpFade {
+        0% {
+          transform: translateY(40px);
+          opacity: 0;
+        }
+
+        100% {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes expandWidth {
+        0% {
+          width: 0;
+        }
+
+        100% {
+          width: 120px;
+        }
+      }
+
+      @keyframes fadeInVal {
+        0% {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes drift {
+        0% {
+          transform: translate(0, 0) scale(1);
+        }
+
+        100% {
+          transform: translate(50px, 50px) scale(1.1);
+        }
+      }
+
+      .splash-exit {
+        transform: translateY(-100vh) !important;
+        opacity: 0 !important;
+      }
+    </style>
+  </div>
+
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <div class="logo">🎊 <span>TN</span>Events</div>
+    <div class="nav-links">
+      <a href="/index.html" class="active" id="nav-home">Home</a>
+      <a href="/halls.html" id="nav-halls">Halls</a>
+      <a href="/catering.html">Catering</a>
+      <a href="/cars.html">Luxury Cars</a>
+      <a href="/photography.html">Photography</a>
+      <a href="/decorations.html">Decorations</a>
+      <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+    </div>
+    <div class="nav-auth" id="nav-auth">
+      <a href="/login.html" class="btn btn-secondary btn-sm" id="btn-login">Login</a>
+      <a href="/register.html" class="btn btn-primary btn-sm" id="btn-register">Sign Up</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <h1>Book Your Dream Event<br />Across <em>Tamil Nadu</em></h1>
+    <p>Discover the finest halls, catering, luxury cars, photography & decorations for weddings, functions &
+      celebrations.</p>
+    <div class="hero-search">
+      <input type="text" id="search-city" placeholder="🔍  Search by city (e.g. Chennai, Madurai…)" />
+      <select id="search-category">
+        <option value="">All Services</option>
+        <option value="halls">Halls</option>
+        <option value="catering">Catering</option>
+        <option value="cars">Luxury Cars</option>
+        <option value="photography">Photography</option>
+        <option value="decorations">Decorations</option>
+      </select>
+      <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    </div>
+    <div class="hero-tags">
+      <span class="hero-tag" onclick="quickSearch('Chennai')">Chennai</span>
+      <span class="hero-tag" onclick="quickSearch('Madurai')">Madurai</span>
+      <span class="hero-tag" onclick="quickSearch('Coimbatore')">Coimbatore</span>
+      <span class="hero-tag" onclick="quickSearch('Salem')">Salem</span>
+      <span class="hero-tag" onclick="quickSearch('Trichy')">Trichy</span>
+    </div>
+  </section>
+
+  <!-- MAIN -->
+  <main class="container">
+
+    <!-- STATS -->
+    <div class="stats-bar">
+      <div class="stat-item">
+        <div class="stat-value" id="stat-halls">—</div>
+        <div class="stat-label">Halls</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-cities">—</div>
+        <div class="stat-label">Cities</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-vendors">—</div>
+        <div class="stat-label">Vendors</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-cat">—</div>
+        <div class="stat-label">Caterers</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="stat-cars">—</div>
+        <div class="stat-label">Luxury Cars</div>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Browse Services</h2>
+      </div>
+      <div class="categories-grid">
+        <a href="/halls.html" class="category-card">
+          <div class="cat-icon">🏛️</div>
+          <div class="cat-name">Banquet Halls</div>
+          <div class="cat-count" id="cnt-halls">Loading…</div>
+        </a>
+        <a href="/catering.html" class="category-card">
+          <div class="cat-icon">🍽️</div>
+          <div class="cat-name">Catering</div>
+          <div class="cat-count" id="cnt-cat">Loading…</div>
+        </a>
+        <a href="/cars.html" class="category-card">
+          <div class="cat-icon">🚗</div>
+          <div class="cat-name">Luxury Cars</div>
+          <div class="cat-count" id="cnt-cars">Loading…</div>
+        </a>
+        <a href="/photography.html" class="category-card">
+          <div class="cat-icon">📸</div>
+          <div class="cat-name">Photography</div>
+          <div class="cat-count" id="cnt-photo">Loading…</div>
+        </a>
+        <a href="/decorations.html" class="category-card">
+          <div class="cat-icon">🌸</div>
+          <div class="cat-name">Decorations</div>
+          <div class="cat-count" id="cnt-decor">Loading…</div>
+        </a>
+      </div>
+    </section>
+
+    <!-- FEATURED HALLS -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Featured Halls</h2>
+        <a href="/halls.html" class="btn btn-outline btn-sm">View All →</a>
+      </div>
+      <div class="grid-cards" id="featured-halls">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading halls…</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- LOGIN MODAL (shown when unauthenticated action attempted) -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Login Required</h3>
+        <button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+      </div>
+      <p style="margin-bottom:1.5rem">You must log in to book a service.</p>
+      <div style="display:flex;gap:.75rem">
+        <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+        <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/static/common.js"></script>
+  <script>
+    // ─── On Load ──────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+      initNav();
+      await loadStats();
+      await loadFeaturedHalls();
+
+      // Remove splash screen after loading is complete
+      setTimeout(() => {
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+          splash.classList.add('splash-exit');
+          setTimeout(() => splash.remove(), 1000); // Wait for transition
+        }
+      }, 2500);
+    });
+
+    async function loadStats() {
+      try {
+        const [halls, catering, cars, photo, decor, cities] = await Promise.all([
+          fetch('/api/halls').then(r => r.json()),
+          fetch('/api/catering').then(r => r.json()),
+          fetch('/api/cars').then(r => r.json()),
+          fetch('/api/photography').then(r => r.json()),
+          fetch('/api/decorations').then(r => r.json()),
+          fetch('/api/cities').then(r => r.json()),
+        ]);
+        document.getElementById('stat-halls').textContent = halls.length + '+';
+        document.getElementById('stat-cities').textContent = cities.length + '+';
+        document.getElementById('stat-vendors').textContent = '10+';
+        document.getElementById('stat-cat').textContent = catering.length + '+';
+        document.getElementById('stat-cars').textContent = cars.length + '+';
+        document.getElementById('cnt-halls').textContent = halls.length + ' available';
+        document.getElementById('cnt-cat').textContent = catering.length + ' companies';
+        document.getElementById('cnt-cars').textContent = cars.length + ' vehicles';
+        document.getElementById('cnt-photo').textContent = photo.length + ' studios';
+        document.getElementById('cnt-decor').textContent = decor.length + ' themes';
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadFeaturedHalls() {
+      const el = document.getElementById('featured-halls');
+      try {
+        const halls = await fetch('/api/halls').then(r => r.json());
+        if (!halls.length) { el.innerHTML = '<div class="empty-state"><div class="empty-icon">🏛️</div><p>No halls found</p></div>'; return; }
+        el.innerHTML = halls.slice(0, 6).map(h => hallCard(h)).join('');
+      } catch (e) {
+        el.innerHTML = '<div class="empty-state"><p>Failed to load halls. Is the backend running?</p></div>';
+      }
+    }
+
+    function hallCard(h) {
+      let name = esc(h.name);
+      if (name.toLowerCase().includes('elite')) name = `<span class="elite-text">${name}</span>`;
+      if (name.toLowerCase().includes('grand')) name = `<span class="grand-text">${name}</span>`;
+
+      const imgHtml = h.image_url ? `<img src="${esc(h.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` :
+        `<div class="card-img-placeholder">🏛️</div>`;
+
+      return `
+      <div class="card service-card" onclick="location.href='/hall-detail.html?id=${h.id}'">
+        ${imgHtml}
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+          ${name}
+          ${h.location_url ? `<a href="${esc(h.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+        </div>
+        <div class="card-city">📍 ${esc(h.city)}</div>
+        <div class="card-meta">
+          <span class="badge">👥 ${h.capacity} guests</span>
+          ${h.amenities ? h.amenities.split(',').slice(0, 2).map(a => `<span class="badge">${esc(a.trim())}</span>`).join('') : ''}
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+          <div class="card-price"><span class="amount">₹${Number(h.price_per_night).toLocaleString()}</span><span class="unit">/night</span></div>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${h.id},'hall')">Book Now</button>
+        </div>
+      </div>`;
+    }
+
+    function doSearch() {
+      const city = document.getElementById('search-city').value.trim();
+      const cat = document.getElementById('search-category').value;
+      const page = cat || 'halls';
+      window.location.href = `/${page}.html?city=${encodeURIComponent(city)}`;
+    }
+    function quickSearch(city) {
+      document.getElementById('search-city').value = city;
+      doSearch();
+    }
+  </script>
+</body>
+
+</html>

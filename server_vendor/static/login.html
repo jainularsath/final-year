@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Vendor Login – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body class="auth-page">
+    <div class="auth-box">
+        <div class="auth-logo">
+            <h1>🏪 Vendor <span>Portal</span></h1>
+            <p>TN Events — Manage your services & orders</p>
+        </div>
+        <div class="err-msg" id="err-msg"></div>
+        <form id="login-form" onsubmit="doLogin(event)">
+            <div class="form-group"><label>Email</label><input type="email" id="email" class="form-control"
+                    placeholder="vendor@example.com" required /></div>
+            <div class="form-group"><label>Password</label><input type="password" id="password" class="form-control"
+                    placeholder="••••••••" required /></div>
+            <button type="submit" class="btn btn-primary btn-lg" id="btn-submit"
+                style="width:100%;justify-content:center;margin-top:.5rem">Login to Vendor Portal</button>
+        </form>
+        <div class="divider"></div>
+        <p style="text-align:center;font-size:.9rem;color:var(--clr-muted)">New vendor? <a href="/register.html">Apply
+                for account →</a></p>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        fetch('/api/me').then(r => { if (r.ok) location.href = '/index.html'; });
+        async function doLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit'); btn.disabled = true; btn.textContent = 'Logging in…';
+            const err = document.getElementById('err-msg'); err.style.display = 'none';
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value })
+                });
+                const data = await res.json();
+                if (!res.ok) { err.textContent = data.error || 'Login failed'; err.style.display = 'block'; return; }
+                toast('Welcome back! Redirecting…', 'success');
+                setTimeout(() => location.href = '/index.html', 800);
+            } catch (e2) { err.textContent = 'Network error'; err.style.display = 'block'; }
+            finally { btn.disabled = false; btn.textContent = 'Login to Vendor Portal'; }
+        }
+    </script>
+</body>
+
+</html>

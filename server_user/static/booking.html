@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Complete Your Booking – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        .booking-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 2rem;
+        }
+
+        .service-info {
+            background: var(--clr-surface);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            position: sticky;
+            top: 2rem;
+            align-self: start;
+        }
+
+        .booking-form-box {
+            background: var(--clr-surface);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: .75rem;
+            color: var(--clr-muted);
+            font-size: .9rem;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--clr-border);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--clr-gold);
+        }
+
+        @media (max-width: 992px) {
+            .booking-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .service-info {
+                position: static;
+                order: -1;
+            }
+        }
+
+        .calendar-section {
+            margin-bottom: 2rem;
+        }
+
+        .calendar-months {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .calendar-month {
+            background: var(--clr-bg2);
+            padding: 0.4rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--clr-border);
+        }
+
+        .calendar-month-title {
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--clr-gold);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .cal-header {
+            text-align: center;
+            font-size: 0.6rem;
+            color: var(--clr-muted);
+            font-weight: 700;
+            padding-bottom: 0.3rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .calendar-day:hover:not(.booked):not(.empty) {
+            background: var(--clr-surface2);
+            border-color: var(--clr-gold);
+        }
+
+        .calendar-day.booked {
+            background: #1e1e1e;
+            color: #444;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .calendar-day.available {
+            background: rgba(34, 197, 94, 0.05);
+            color: var(--clr-text);
+        }
+
+        .calendar-day.selected {
+            background: var(--clr-gold) !important;
+            color: #000 !important;
+            font-weight: 700;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+        }
+
+        .calendar-legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: var(--clr-muted);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+        </div>
+        <div class="nav-auth" id="nav-auth"></div>
+    </nav>
+    <main class="container section">
+        <div class="page-header" style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Finalize Your Booking</h1>
+            <p>Secure your date and proceed to checkout</p>
+        </div>
+
+        <div class="booking-grid">
+            <!-- Booking Form -->
+            <div class="booking-form-box">
+                <h3 style="margin-bottom:1.5rem">Event Details</h3>
+                <form id="booking-form" onsubmit="handleBooking(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Event Date</label>
+                            <input type="date" id="b-date" class="form-control" required />
+                        </div>
+                        <div class="form-group" id="guests-group">
+                            <label id="guests-label">Approx. Guests</label>
+                            <input type="number" id="b-people" class="form-control" placeholder="100" min="1"
+                                required />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Event Timing / Session</label>
+                        <select id="b-time" class="form-control">
+                            <option value="09:00:00">Full Day</option>
+                            <option value="10:00:00">Morning</option>
+                            <option value="18:00:00">Evening</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="decor-options-group" style="display:none">
+                        <label>Decoration Quality</label>
+                        <select id="b-decor-quality" class="form-control">
+                            <option value="normal">Normal (Standard Price)</option>
+                            <option value="medium">Medium (1.5x Price)</option>
+                            <option value="premium">Premium (2x Price)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="car-options-group" style="display:none">
+                        <label>Rental Duration Type</label>
+                        <select id="b-car-rent-type" class="form-control" onchange="onCarRentTypeChange()">
+                            <option value="day">Full Day (Charged per Day)</option>
+                            <option value="hour">Per Hour (Charged per Hour)</option>
+                        </select>
+                    </div>
+                    <!-- Car: Number of Days field -->
+                    <div class="form-group" id="car-days-group" style="display:none">
+                        <label>Number of Days</label>
+                        <input type="number" id="b-car-days" class="form-control" placeholder="e.g. 1" min="1"
+                            value="1" />
+                    </div>
+                    <!-- Car: Number of Hours field -->
+                    <div class="form-group" id="car-hours-group" style="display:none">
+                        <label>Number of Hours</label>
+                        <input type="number" id="b-car-hours" class="form-control" placeholder="e.g. 4" min="1"
+                            value="1" />
+                    </div>
+                    <div class="form-group">
+                        <label>Special Requests / Notes</label>
+                        <textarea id="b-notes" class="form-control" rows="4"
+                            placeholder="Mention any specific preferences or requirements…"></textarea>
+                    </div>
+
+                    <div class="calendar-section">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.75rem">
+                            <h4 style="margin:0;font-size:.9rem">📅 Availability Calendar</h4>
+                            <div style="display:flex;gap:.4rem">
+                                <button class="btn btn-secondary" style="padding:.2rem .5rem;font-size:.7rem"
+                                    onclick="prevMonth()">← Prev</button>
+                                <button class="btn btn-secondary" style="padding:.2rem .5rem;font-size:.7rem"
+                                    onclick="nextMonth()">Next →</button>
+                            </div>
+                        </div>
+                        <div id="calendar-container" class="calendar-months">
+                            <div class="loading-state">
+                                <div class="spinner"></div>
+                                <p>Checking availability...</p>
+                            </div>
+                        </div>
+                        <div class="calendar-legend">
+                            <div class="legend-item">
+                                <div class="legend-box available" style="background:rgba(34, 197, 94, 0.1)"></div> Avail
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-box booked" style="background:#1e1e1e"></div> Booked
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-box selected" style="background:var(--clr-gold)"></div> Sel
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="divider" style="margin:2rem 0"></div>
+
+                    <h3 style="margin-bottom:1.5rem">💳 Payment Options</h3>
+                    <p style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1.5rem">You only need to pay a
+                        <strong style="color:var(--clr-gold)">5% advance</strong> to confirm your booking request.
+                    </p>
+
+                    <div style="display:flex;flex-direction:column;gap:.75rem">
+                        <label class="radio-card active">
+                            <input type="radio" name="pay_type" value="card" checked />
+                            <div class="radio-content">
+                                <span class="icon">💳</span>
+                                <div>
+                                    <div class="label">Credit / Debit Card</div>
+                                    <div class="desc">Secure payment with Visa/Mastercard</div>
+                                </div>
+                            </div>
+                        </label>
+                        <label class="radio-card">
+                            <input type="radio" name="pay_type" value="upi" />
+                            <div class="radio-content">
+                                <span class="icon">📱</span>
+                                <div>
+                                    <div class="label">UPI Payment</div>
+                                    <div class="desc">GPay, PhonePe, Paytm</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg"
+                        style="width:100%;justify-content:center;margin-top:2rem" id="btn-pay">Pay Advance Now</button>
+                </form>
+            </div>
+
+            <!-- Summary Sidebar -->
+            <div class="service-info" id="summary-box">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading summary…</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        let _service = null;
+        let _type = '';
+        let _id = '';
+
+        let _bookedDates = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            _type = params.get('service_type');
+            _id = params.get('service_id');
+
+            // Pre-fill fields from URL
+            if (params.get('date')) document.getElementById('b-date').value = params.get('date');
+            if (params.get('guests')) document.getElementById('b-people').value = params.get('guests');
+            if (params.get('notes')) document.getElementById('b-notes').value = params.get('notes');
+
+            if (!_type || !_id) { location.href = '/index.html'; return; }
+
+            await loadService();
+            await loadAvailability();
+
+            // Update summary when form changes
+            ['b-date', 'b-people', 'b-time', 'b-notes', 'b-decor-quality', 'b-car-rent-type', 'b-car-days', 'b-car-hours'].forEach(id => {
+                document.getElementById(id)?.addEventListener('change', () => {
+                    renderSummary();
+                    renderCalendar();
+                });
+                document.getElementById(id)?.addEventListener('input', () => {
+                    renderSummary();
+                    renderCalendar();
+                });
+            });
+
+            if (_type === 'decorations') {
+                document.getElementById('decor-options-group').style.display = 'flex';
+            } else if (_type === 'luxury_car') {
+                // Hide the generic guests field for cars; show car-specific fields
+                document.getElementById('guests-group').style.display = 'none';
+                document.getElementById('b-people').removeAttribute('required');
+                document.getElementById('car-options-group').style.display = 'flex';
+                // Default to day mode
+                onCarRentTypeChange();
+            }
+
+            function onCarRentTypeChange() {
+                const rentType = document.getElementById('b-car-rent-type')?.value;
+                const daysGroup = document.getElementById('car-days-group');
+                const hoursGroup = document.getElementById('car-hours-group');
+                if (rentType === 'hour') {
+                    if (daysGroup) daysGroup.style.display = 'none';
+                    if (hoursGroup) hoursGroup.style.display = 'flex';
+                } else {
+                    if (daysGroup) daysGroup.style.display = 'flex';
+                    if (hoursGroup) hoursGroup.style.display = 'none';
+                }
+                renderSummary();
+            }
+            window.onCarRentTypeChange = onCarRentTypeChange;
+        });
+
+        let _currentMonthOffset = 0;
+        async function loadAvailability() {
+            try {
+                const res = await fetch(`/api/services/availability?type=${_type}&id=${_id}`);
+                const data = await res.json();
+                _bookedDates = data.booked_dates || [];
+                renderCalendar();
+            } catch (e) {
+                console.error('Failed to load availability', e);
+            }
+        }
+
+        function nextMonth() { if (_currentMonthOffset < 5) { _currentMonthOffset++; renderCalendar(); } else { toast('Availability limited to 6 months', 'info'); } }
+        function prevMonth() { if (_currentMonthOffset > 0) { _currentMonthOffset--; renderCalendar(); } }
+
+        function renderCalendar() {
+            const container = document.getElementById('calendar-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const today = new Date();
+            const currentSelected = document.getElementById('b-date').value;
+
+            // Only show ONE month based on offset
+            const monthDate = new Date(today.getFullYear(), today.getMonth() + _currentMonthOffset, 1);
+            container.appendChild(createMonthElement(monthDate, currentSelected));
+        }
+
+        function createMonthElement(date, currentSelected) {
+            const div = document.createElement('div');
+            div.className = 'calendar-month';
+
+            const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+            div.innerHTML = `<div class="calendar-month-title">${monthName}</div>`;
+
+            const grid = document.createElement('div');
+            grid.className = 'calendar-grid';
+
+            // Headers
+            ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(day => {
+                const h = document.createElement('div');
+                h.className = 'cal-header';
+                h.textContent = day;
+                grid.appendChild(h);
+            });
+
+            const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).getDay();
+            const daysInMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+
+            for (let i = 0; i < firstDay; i++) {
+                const empty = document.createElement('div');
+                empty.className = 'calendar-day empty';
+                grid.appendChild(empty);
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const isBooked = _bookedDates.includes(dateStr);
+                const isPast = dateStr < todayStr;
+                const isSelected = dateStr === currentSelected;
+
+                const dayEl = document.createElement('div');
+                dayEl.className = `calendar-day ${isBooked || isPast ? 'booked' : 'available'} ${isSelected ? 'selected' : ''}`;
+                dayEl.textContent = d;
+
+                if (!isBooked && !isPast) {
+                    dayEl.onclick = () => {
+                        document.getElementById('b-date').value = dateStr;
+                        renderCalendar();
+                        renderSummary();
+                    };
+                }
+                grid.appendChild(dayEl);
+            }
+
+            div.appendChild(grid);
+            return div;
+        }
+
+        async function loadService() {
+            try {
+                const res = await fetch(`/api/services/detail?type=${_type}&id=${_id}`);
+                if (!res.ok) throw new Error('Not found');
+                _service = await res.json();
+                renderSummary();
+            } catch (e) {
+                document.getElementById('summary-box').innerHTML = '<p>Service details not found.</p>';
+            }
+        }
+
+        function renderSummary() {
+            const box = document.getElementById('summary-box');
+            let name = _service.name || _service.company_name || _service.car_name || _service.service_name || _service.theme_name;
+            let base_price = Number(_service.price_per_night || _service.price_per_plate || _service.per_day_rent || _service.base_price || 0);
+
+            const date = document.getElementById('b-date').value;
+            const people = parseInt(document.getElementById('b-people').value) || 0;
+            const time = document.getElementById('b-time').value;
+
+            let finalPrice = base_price;
+            let priceNote = '';
+
+            if (_type === 'catering') {
+                if (people > 0) finalPrice = base_price * people;
+                priceNote = `(₹${base_price.toLocaleString()} × ${people} guests)`;
+            } else if (_type === 'photography' || _type === 'decorations') {
+                if (people <= 500) {
+                    finalPrice = base_price;
+                    priceNote = `(Base up to 500 guests)`;
+                } else {
+                    const extraHundreds = Math.ceil((people - 500) / 100);
+                    finalPrice = base_price + (extraHundreds * 10000);
+                    priceNote = `(Base + ₹${(extraHundreds * 10000).toLocaleString()} for extra guests)`;
+                }
+                if (_type === 'decorations') {
+                    const q = document.getElementById('b-decor-quality').value;
+                    if (q === 'medium') { finalPrice *= 1.5; priceNote += ' (Medium Quality 1.5x)'; }
+                    if (q === 'premium') { finalPrice *= 2; priceNote += ' (Premium Quality 2x)'; }
+                }
+            } else if (_type === 'luxury_car') {
+                const rentType = document.getElementById('b-car-rent-type')?.value;
+                if (rentType === 'hour') {
+                    const hrRate = Number(_service.per_hour_rent) || 0;
+                    const hours = parseInt(document.getElementById('b-car-hours')?.value) || 1;
+                    finalPrice = hrRate * hours;
+                    priceNote = `(₹${hrRate.toLocaleString()}/hr × ${hours} hr${hours > 1 ? 's' : ''})`;
+                } else {
+                    const dayRate = Number(_service.per_day_rent) || base_price;
+                    const days = parseInt(document.getElementById('b-car-days')?.value) || 1;
+                    finalPrice = dayRate * days;
+                    priceNote = `(₹${dayRate.toLocaleString()}/day × ${days} day${days > 1 ? 's' : ''})`;
+                }
+            }
+
+            const nameEsc = esc(name);
+            let nameStyled = nameEsc;
+            if (nameEsc.toLowerCase().includes('elite')) nameStyled = `<span class="elite-text">${nameEsc}</span>`;
+            if (nameEsc.toLowerCase().includes('grand')) nameStyled = `<span class="grand-text">${nameEsc}</span>`;
+
+            box.innerHTML = `
+      <h3 style="margin-bottom:1rem">${nameStyled}</h3>
+      <div style="font-size:.85rem;color:var(--clr-muted);margin-bottom:1.25rem">📍 ${esc(_service.city)} | Category: ${esc(_type.replace('_', ' '))}</div>
+      
+      <div style="background:rgba(255,255,255,0.03);padding:1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;border:1px solid var(--clr-border)">
+        <div style="font-weight:700;margin-bottom:.5rem;color:var(--clr-gold);font-size:.8rem;text-transform:uppercase">Booking Summary</div>
+        <div class="summary-item"><span>Date</span><span>${date ? formatDate(date) : '—'}</span></div>
+        ${_type !== 'luxury_car' ? `<div class="summary-item"><span>Guests</span><span>${people || '—'}</span></div>` : (() => {
+                    const rt = document.getElementById('b-car-rent-type')?.value;
+                    if (rt === 'hour') {
+                        const hrs = parseInt(document.getElementById('b-car-hours')?.value) || 1;
+                        return `<div class="summary-item"><span>Duration</span><span>${hrs} hour${hrs > 1 ? 's' : ''}</span></div>`;
+                    } else {
+                        const ds = parseInt(document.getElementById('b-car-days')?.value) || 1;
+                        return `<div class="summary-item"><span>Duration</span><span>${ds} day${ds > 1 ? 's' : ''}</span></div>`;
+                    }
+                })()}
+        <div class="summary-item"><span>Timing</span><span>${time}</span></div>
+      </div>
+
+      <div class="summary-item"><span>Base Price</span><span>${formatCurrency(finalPrice)} <small>${priceNote}</small></span></div>
+      <div class="summary-item"><span>Service Charge</span><span>${formatCurrency(500)}</span></div>
+      <div class="summary-total"><span>Total Payable</span><span>${formatCurrency(finalPrice + 500)}</span></div>
+      <div class="summary-item" style="margin-top:1rem"><span>Advance (5%)</span><span style="color:var(--clr-green);font-weight:700">${formatCurrency((finalPrice + 500) * 0.05)}</span></div>
+      
+      <div style="background:rgba(124,92,191,.1);padding:.75rem;border-radius:var(--radius-sm);margin-top:1.5rem;font-size:.8rem;color:var(--clr-text)">
+        <strong>Contact:</strong> ${esc(_service.vendor_email || 'Not available')}<br/>
+        <span style="color:var(--clr-muted)">🔒 Secured and protected booking by TN Events.</span>
+      </div>`;
+            document.getElementById('btn-pay').textContent = `Pay ${formatCurrency((finalPrice + 500) * 0.05)} Now`;
+        }
+
+        async function handleBooking(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-pay');
+            const date = document.getElementById('b-date').value;
+
+            if (_bookedDates.includes(date)) {
+                toast('Error: This date is already booked and unavailable.', 'error');
+                return;
+            }
+
+            const people = parseInt(document.getElementById('b-people').value) || 0;
+            let finalPrice = Number(_service.price_per_night || _service.price_per_plate || _service.per_day_rent || _service.base_price || 0);
+
+            if (_type === 'catering') {
+                if (people > 0) finalPrice = finalPrice * people;
+            } else if (_type === 'photography' || _type === 'decorations') {
+                if (people > 500) {
+                    const extraHundreds = Math.ceil((people - 500) / 100);
+                    finalPrice += (extraHundreds * 10000);
+                }
+                if (_type === 'decorations') {
+                    const q = document.getElementById('b-decor-quality').value;
+                    if (q === 'medium') finalPrice *= 1.5;
+                    if (q === 'premium') finalPrice *= 2;
+                }
+            } else if (_type === 'luxury_car') {
+                const rentType = document.getElementById('b-car-rent-type')?.value;
+                if (rentType === 'hour') {
+                    const hrRate = Number(_service.per_hour_rent) || 0;
+                    const hours = parseInt(document.getElementById('b-car-hours')?.value) || 1;
+                    finalPrice = hrRate * hours;  // price per hour × number of hours
+                } else {
+                    const dayRate = Number(_service.per_day_rent) || finalPrice;
+                    const days = parseInt(document.getElementById('b-car-days')?.value) || 1;
+                    finalPrice = dayRate * days;  // price per day × number of days
+                }
+            }
+
+            const advance = (finalPrice + 500) * 0.05;
+
+            btn.disabled = true; btn.textContent = 'Processing Payment…';
+
+            const data = {
+                service_type: _type,
+                service_id: _id,
+                date: document.getElementById('b-date').value,
+                total_people: people,
+                time: document.getElementById('b-time').value,
+                notes: document.getElementById('b-notes').value,
+                total_amount: finalPrice + 500,
+                advance_amount: advance
+            };
+
+            try {
+                // 1. Create Booking
+                const res = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+                const resp = await res.json();
+                if (!res.ok) { toast(resp.error || 'Booking failed', 'error'); return; }
+
+                // 2. Simulate Payment
+                toast('Contacting payment gateway...', 'info');
+                await new Promise(r => setTimeout(r, 1000));
+
+                const payRes = await fetch('/api/payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ booking_id: resp.booking_id, amount: advance })
+                });
+
+                if (payRes.ok) {
+                    toast('Payment Completed! ✅ Status: Confirmed', 'success');
+                    setTimeout(() => {
+                        location.href = `/booking-success.html?id=${resp.booking_id}`;
+                    }, 1500);
+                } else {
+                    toast('Payment failed, but booking is saved as pending.', 'error');
+                    setTimeout(() => {
+                        location.href = '/my-orders.html';
+                    }, 2000);
+                }
+            } catch (err) {
+                toast('Network error', 'error');
+            } finally {
+                if (!location.href.includes('booking-success')) {
+                    btn.disabled = false;
+                    btn.textContent = 'Pay Advance Now';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

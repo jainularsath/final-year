@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Vendor Management – Admin</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div>
+            <a class="sidebar-link" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link" href="/halls.html"><span class="icon">🏛️</span>Halls</a>
+            <a class="sidebar-link" href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a>
+            <a class="sidebar-link" href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link active" href="/vendors.html"><span class="icon">🏪</span>Vendors</a>
+            <a class="sidebar-link" href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">Vendor Management</div>
+            <p class="page-subtitle">Approve, reject, or delete vendor accounts</p>
+            <div class="filter-bar">
+                <div class="form-group"><label>Filter by Status</label>
+                    <select id="f-status" class="form-control" onchange="loadVendors()">
+                        <option value="">All Vendors</option>
+                        <option value="pending">Pending Approval</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Registered</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="vendors-body">
+                        <tr>
+                            <td colspan="7" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) { location.href = '/login.html'; return; }
+            // Default to pending
+            document.getElementById('f-status').value = 'pending';
+            loadVendors();
+        });
+
+        async function loadVendors() {
+            const status = document.getElementById('f-status').value;
+            const tbody = document.getElementById('vendors-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><div class="spinner"></div></td></tr>';
+            let url = '/api/admin/vendors?';
+            if (status) url += `status=${status}`;
+            try {
+                const vendors = await fetch(url).then(r => r.json());
+                if (!vendors.length) { tbody.innerHTML = `<tr><td colspan="7" class="empty-state">No ${status || ''} vendors found.</td></tr>`; return; }
+                tbody.innerHTML = vendors.map(v => `
+        <tr>
+          <td>#${v.id}</td>
+          <td><strong>${esc(v.name)}</strong></td>
+          <td>${esc(v.email)}</td>
+          <td>${esc(v.phone || '—')}</td>
+          <td>${formatDate(v.created_at)}</td>
+          <td>${statusBadge(v.status)}</td>
+          <td style="display:flex;gap:.3rem;flex-wrap:wrap">
+            ${v.status === 'pending' || v.status === 'inactive' ? `<button class="btn btn-success btn-sm" onclick="approveVendor(${v.id},this)">✓ Approve</button>` : ''}
+            ${v.status !== 'inactive' ? `<button class="btn btn-danger btn-sm" onclick="rejectVendor(${v.id},this)">✕ Reject</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="deleteVendor(${v.id},this)">🗑</button>
+          </td>
+        </tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load vendors.</td></tr>'; }
+        }
+
+        async function approveVendor(id, btn) {
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/admin/vendors/${id}/approve`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+                toast('Vendor approved! ✅', 'success'); loadVendors();
+            } catch (e) { toast('Network error', 'error'); } finally { btn.disabled = false; }
+        }
+
+        async function rejectVendor(id, btn) {
+            if (!confirm('Reject this vendor?')) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/admin/vendors/${id}/reject`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+                toast('Vendor rejected', 'info'); loadVendors();
+            } catch (e) { toast('Network error', 'error'); } finally { btn.disabled = false; }
+        }
+
+        async function deleteVendor(id, btn) {
+            if (!confirm('Permanently delete this vendor? This cannot be undone.')) return;
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/admin/vendors/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+                toast('Vendor deleted', 'success'); loadVendors();
+            } catch (e) { toast('Network error', 'error'); } finally { btn.disabled = false; }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Vendor Dashboard – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="logo">🏪 <span>Vendor</span></div>
+            <div class="sidebar-section">Menu</div>
+            <a class="sidebar-link active" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <a class="sidebar-link" href="/orders.html"><span class="icon">📋</span>My Orders</a>
+            <a class="sidebar-link" href="/services.html"><span class="icon">🛍️</span>My Services</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link" href="#" onclick="openModal('pw-modal-overlay');return false;"><span
+                    class="icon">🔑</span>Security</a>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+            <div style="padding:.9rem;margin-top:auto">
+                <div id="user-pill" style="font-size:.85rem;color:var(--clr-muted)">Loading…</div>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main-content">
+            <div class="page-title">Dashboard</div>
+            <p class="page-subtitle" id="welcome-msg">Welcome back!</p>
+
+            <!-- Stats -->
+            <div class="stat-grid" id="stats-grid">
+                <div class="loading-state" style="padding:1rem">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+
+            <!-- Charts row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem">
+                <div class="chart-wrap">
+                    <div class="section-header">
+                        <div class="section-title">Bookings Over 30 Days</div>
+                    </div>
+                    <canvas id="chart-time" height="200"></canvas>
+                </div>
+                <div class="chart-wrap">
+                    <div class="section-header">
+                        <div class="section-title">By Service Type</div>
+                    </div>
+                    <canvas id="chart-type" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="panel">
+                <div class="section-header">
+                    <div class="section-title">Recent Orders</div>
+                    <a href="/orders.html" class="btn btn-outline btn-sm">View All →</a>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Service</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-orders-body">
+                            <tr>
+                                <td colspan="7" class="loading-state">
+                                    <div class="spinner"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const SERVICE_ICONS = { hall: '🏛️', catering: '🍽️', luxury_car: '🚗', photography: '📸', decorations: '🌸' };
+        let timeChart, typeChart;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Auth check
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { location.href = '/login.html'; return; }
+                const user = await res.json();
+                document.getElementById('welcome-msg').textContent = `Welcome back, ${user.name}! 👋`;
+                document.getElementById('user-pill').innerHTML = `<strong style="color:var(--clr-text)">${esc(user.name)}</strong><br/><span>${esc(user.email)}</span>`;
+            } catch (e) { location.href = '/login.html'; return; }
+
+            loadStats();
+            loadAnalytics();
+            loadRecentOrders();
+        });
+
+        async function loadStats() {
+            try {
+                const analytics = await fetch('/api/vendor/analytics').then(r => r.json());
+                let total = 0, revenue = 0, pending = 0, confirmed = 0;
+                analytics.by_status.forEach(s => {
+                    total += s.count; revenue += Number(s.total_revenue || 0);
+                    if (s.status === 'pending') pending = s.count;
+                    if (s.status === 'confirmed') confirmed = s.count;
+                });
+                document.getElementById('stats-grid').innerHTML = `
+        <div class="stat-card"><div class="stat-icon gold">📦</div><div class="stat-info"><div class="value">${total}</div><div class="label">Total Orders</div></div></div>
+        <div class="stat-card"><div class="stat-icon gold">⏳</div><div class="stat-info"><div class="value">${pending}</div><div class="label">Pending</div></div></div>
+        <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><div class="value">${confirmed}</div><div class="label">Confirmed</div></div></div>
+        <div class="stat-card"><div class="stat-icon purple">💰</div><div class="stat-info"><div class="value">₹${Number(revenue).toLocaleString()}</div><div class="label">Revenue</div></div></div>`;
+            } catch (e) { document.getElementById('stats-grid').innerHTML = '<p style="color:var(--clr-muted)">Failed to load stats.</p>'; }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const data = await fetch('/api/vendor/analytics').then(r => r.json());
+                // Time chart
+                const labels = (data.over_time || []).map(r => r.day);
+                const counts = (data.over_time || []).map(r => r.count);
+                const ctx1 = document.getElementById('chart-time').getContext('2d');
+                timeChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: { labels, datasets: [{ label: 'Bookings', data: counts, borderColor: '#f5a623', backgroundColor: 'rgba(245,166,35,.1)', tension: .4, fill: true }] },
+                    options: { plugins: { legend: { labels: { color: '#8891a8' } } }, scales: { x: { ticks: { color: '#8891a8' }, grid: { color: 'rgba(255,255,255,.05)' } }, y: { ticks: { color: '#8891a8' }, grid: { color: 'rgba(255,255,255,.05)' } } } }
+                });
+                // Type chart
+                const ctx2 = document.getElementById('chart-type').getContext('2d');
+                const typeLabels = (data.by_type || []).map(r => r.service_type.replace('_', ' '));
+                const typeCounts = (data.by_type || []).map(r => r.count);
+                typeChart = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: { labels: typeLabels, datasets: [{ data: typeCounts, backgroundColor: ['#f5a623', '#7c5cbf', '#22c55e', '#3b82f6', '#ef4444'], borderWidth: 0 }] },
+                    options: { plugins: { legend: { labels: { color: '#8891a8' } } } }
+                });
+            } catch (e) { console.error('Analytics error', e); }
+        }
+
+        async function loadRecentOrders() {
+            const tbody = document.getElementById('recent-orders-body');
+            try {
+                const orders = await fetch('/api/vendor/orders').then(r => r.json());
+                if (!orders.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No orders yet.</td></tr>'; return; }
+                tbody.innerHTML = orders.slice(0, 10).map(o => `
+        <tr>
+          <td>#${o.id}</td>
+          <td>${SERVICE_ICONS[o.service_type] || '📦'} <span title="${esc(o.service_name || '')}">
+            ${esc((o.service_name || o.service_type || '').substring(0, 20))}${(o.service_name || '').length > 20 ? '…' : ''}
+          </span></td>
+          <td>${esc(o.customer_name || '—')}</td>
+          <td>${formatDate(o.date)}</td>
+          <td>${formatCurrency(o.total_amount)}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td>
+            ${o.status === 'pending' ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${o.id},'confirmed',this)">Accept</button>` : ''}
+            ${o.status === 'confirmed' ? `<button class="btn btn-secondary btn-sm" onclick="updateStatus(${o.id},'completed',this)">✓ Done</button>` : ''}
+            ${['pending', 'confirmed'].includes(o.status) ? `<button class="btn btn-danger btn-sm" onclick="updateStatus(${o.id},'cancelled',this)">✕</button>` : ''}
+          </td>
+        </tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load.</td></tr>'; }
+        }
+
+        async function updateStatus(id, status, btn) {
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/vendor/orders/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+                toast(`Order ${status}!`, 'success');
+                loadRecentOrders(); loadStats();
+            } catch (e) { toast('Network error', 'error'); }
+            finally { btn.disabled = false; }
+        }
+    </script>
+</body>
+
+</html>

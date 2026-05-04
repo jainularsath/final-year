@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>My Services – Vendor Portal</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🏪 <span>Vendor</span></div>
+            <div class="sidebar-section">Menu</div>
+            <a class="sidebar-link" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <a class="sidebar-link" href="/orders.html"><span class="icon">📋</span>My Orders</a>
+            <a class="sidebar-link active" href="/services.html"><span class="icon">🛍️</span>My Services</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link" href="#" onclick="openModal('pw-modal-overlay');return false;"><span
+                    class="icon">🔑</span>Security</a>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">My Services</div>
+            <p class="page-subtitle" id="service-type-title">Loading service type...</p>
+
+            <!-- Halls -->
+            <div class="panel" id="panel-hall" style="display:none">
+                <div class="section-header">
+                    <div class="section-title">🏛️ Halls</div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-hall" onclick="openAddModal('hall')">+ Add
+                        Hall</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>City</th>
+                                <th>Capacity</th>
+                                <th>Price/Night</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="halls-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Catering -->
+            <div class="panel" id="panel-catering" style="display:none">
+                <div class="section-header">
+                    <div class="section-title">🍽️ Catering</div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-catering" onclick="openAddModal('catering')">+
+                        Add Company</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Company</th>
+                                <th>City</th>
+                                <th>Price/Plate</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cat-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Cars -->
+            <div class="panel" id="panel-luxury_car" style="display:none">
+                <div class="section-header">
+                    <div class="section-title">🚗 Luxury Cars</div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-car" onclick="openAddModal('luxury_car')">+ Add
+                        Car</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Car</th>
+                                <th>Model</th>
+                                <th>City</th>
+                                <th>Rate/km</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cars-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Photography -->
+            <div class="panel" id="panel-photography" style="display:none">
+                <div class="section-header">
+                    <div class="section-title">📸 Photography</div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-photography"
+                        onclick="openAddModal('photography')">+ Add Service</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Service</th>
+                                <th>City</th>
+                                <th>Base Price</th>
+                                <th>Per Hour</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="photo-body"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Decorations -->
+            <div class="panel" id="panel-decoration" style="display:none">
+                <div class="section-header">
+                    <div class="section-title">🌸 Decorations</div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-decoration"
+                        onclick="openAddModal('decoration')">+ Add Theme</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Theme</th>
+                                <th>Religion</th>
+                                <th>Culture</th>
+                                <th>City</th>
+                                <th>Base Price</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="decor-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Dynamic Add Modal -->
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New Service</h3>
+                <button class="modal-close" onclick="closeModal('add-modal')">✕</button>
+            </div>
+            <form id="add-form" onsubmit="submitAdd(event)">
+                <div id="modal-fields"></div>
+                <button type="submit" class="btn btn-primary"
+                    style="width:100%;justify-content:center;margin-top:.5rem">Confirm Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Price Modal -->
+    <div class="modal-overlay" id="price-modal">
+        <div class="modal" style="max-width:360px">
+            <div class="modal-header">
+                <h3>Update Price</h3>
+                <button class="modal-close" onclick="closeModal('price-modal')">✕</button>
+            </div>
+            <div class="form-group">
+                <label id="price-label">New Price (₹)</label>
+                <input type="number" id="new-price" class="form-control" />
+            </div>
+            <button class="btn btn-primary" onclick="submitPrice()" style="width:100%;justify-content:center">Update
+                Price</button>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        let _vendorServiceType = null;
+        let _editId = null;
+        let _editType = null;
+        let _isEdit = false;
+        let _cache = {}; // Store items for editing
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) { location.href = '/login.html'; return; }
+            loadServices();
+        });
+
+        async function loadServices() {
+            try {
+                const data = await fetch('/api/vendor/services').then(r => r.json());
+                _vendorServiceType = data.service_type || 'hall';
+
+                const panels = ['hall', 'catering', 'luxury_car', 'photography', 'decoration'];
+                panels.forEach(p => {
+                    const el = document.getElementById('panel-' + p);
+                    if (el) el.style.display = (p === _vendorServiceType) ? 'block' : 'none';
+                });
+
+                document.getElementById('service-type-title').textContent = "Business Type: " + _vendorServiceType.replace('_', ' ').toUpperCase();
+
+                _cache.halls = data.halls || [];
+                _cache.catering = data.catering || [];
+                _cache.cars = data.cars || [];
+                _cache.photography = data.photography || [];
+                _cache.decorations = data.decorations || [];
+
+                renderHalls(_cache.halls);
+                renderCat(_cache.catering);
+                renderCars(_cache.cars);
+                renderPhoto(_cache.photography);
+                renderDecor(_cache.decorations);
+            } catch (e) { toast('Failed to load services', 'error'); }
+        }
+
+        function renderHalls(items) {
+            const el = document.getElementById('halls-body');
+            if (!el) return;
+            if (!items.length) { el.innerHTML = '<tr><td colspan="6" class="empty-state">No halls listed</td></tr>'; return; }
+            el.innerHTML = items.map(h => `<tr><td>${esc(h.name)}</td><td>${esc(h.city)}</td><td>${h.capacity}</td><td>₹${h.price_per_night}</td><td>${statusBadge(h.status || 'pending')}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="openPriceEdit('hall',${h.id},${h.price_per_night})">Price</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('hall',${h.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="doDelete('hall',${h.id})">Remove</button></td></tr>`).join('');
+        }
+        function renderCat(items) {
+            const el = document.getElementById('cat-body');
+            if (!el) return;
+            if (!items.length) { el.innerHTML = '<tr><td colspan="5" class="empty-state">No catering listed</td></tr>'; return; }
+            el.innerHTML = items.map(c => `<tr><td>${esc(c.company_name)}</td><td>${esc(c.city)}</td><td>₹${c.price_per_plate}</td><td>${statusBadge(c.status || 'pending')}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="openPriceEdit('catering',${c.id},${c.price_per_plate})">Price</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('catering',${c.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="doDelete('catering',${c.id})">Remove</button></td></tr>`).join('');
+        }
+        function renderCars(items) {
+            const el = document.getElementById('cars-body');
+            if (!el) return;
+            if (!items.length) { el.innerHTML = '<tr><td colspan="6" class="empty-state">No cars listed</td></tr>'; return; }
+            el.innerHTML = items.map(c => `<tr><td>${esc(c.car_name)}</td><td>${esc(c.car_model)}</td><td>${esc(c.city)}</td><td>₹${c.per_day_rent}/day · ₹${c.per_hour_rent || 0}/hr <small>(${c.km_limit}km) +₹${c.rate_per_km}/km extra</small></td><td>${statusBadge(c.status || 'pending')}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="openPriceEdit('luxury_car',${c.id},${c.per_day_rent})">Price</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('luxury_car',${c.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="doDelete('luxury_car',${c.id})">Remove</button></td></tr>`).join('');
+        }
+        function renderPhoto(items) {
+            const el = document.getElementById('photo-body');
+            if (!el) return;
+            if (!items.length) { el.innerHTML = '<tr><td colspan="6" class="empty-state">No photography listed</td></tr>'; return; }
+            el.innerHTML = items.map(p => `<tr><td>${esc(p.service_name)}</td><td>${esc(p.city)}</td><td>₹${p.base_price}</td><td>₹${p.price_per_hour}/hr</td><td>${statusBadge(p.status || 'pending')}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="openPriceEdit('photography',${p.id},${p.base_price})">Price</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('photography',${p.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="doDelete('photography',${p.id})">Remove</button></td></tr>`).join('');
+        }
+        function renderDecor(items) {
+            const el = document.getElementById('decor-body');
+            if (!el) return;
+            if (!items.length) { el.innerHTML = '<tr><td colspan="7" class="empty-state">No decorations listed</td></tr>'; return; }
+            el.innerHTML = items.map(d => `<tr><td>${esc(d.theme_name)}</td><td>${esc(d.religion_style)}</td><td>${esc(d.culture_style)}</td><td>${esc(d.city)}</td><td>₹${d.base_price}</td><td>${statusBadge(d.status || 'pending')}</td>
+                <td><button class="btn btn-outline btn-sm" onclick="openPriceEdit('decoration',${d.id},${d.base_price})">Price</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openEditModal('decoration',${d.id})">Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="doDelete('decoration',${d.id})">Remove</button></td></tr>`).join('');
+        }
+
+        function openAddModal(type) {
+            _isEdit = false; _editId = null; _editType = type;
+            document.getElementById('modal-title').textContent = 'Add New ' + type.replace('_', ' ');
+            renderFields(type);
+        }
+
+        function openEditModal(type, id) {
+            _isEdit = true; _editId = id; _editType = type;
+            document.getElementById('modal-title').textContent = 'Edit ' + type.replace('_', ' ');
+            renderFields(type);
+
+            // Find item in cache
+            const list = type === 'luxury_car' ? _cache.cars : (type === 'decoration' ? _cache.decorations : _cache[type === 'hall' ? 'halls' : type]);
+            const item = list.find(x => x.id === id);
+
+            if (item) {
+                if (type === 'hall') {
+                    setV('f1', item.name); setV('f2', item.city); setV('f3', item.capacity); setV('f4', item.price_per_night); setV('f5', item.address); setV('f6', item.amenities); setV('f8', item.location_url);
+                } else if (type === 'catering') {
+                    setV('f1', item.company_name); setV('f2', item.city); setV('f3', item.price_per_plate); setV('f5', item.location_url);
+                } else if (type === 'luxury_car') {
+                    setV('f1', item.car_name); setV('f2', item.car_model); setV('f3', item.city); setV('f4', item.rate_per_km); setV('f_rent', item.per_day_rent); setV('f_kmlimit', item.km_limit); setV('f_hourly', item.per_hour_rent); setV('f6', item.location_url);
+                } else if (type === 'photography') {
+                    setV('f1', item.service_name); setV('f2', item.city); setV('f3', item.base_price); setV('f4', item.price_per_hour); setV('f6', item.location_url);
+                } else if (type === 'decoration') {
+                    setV('f1', item.theme_name); setV('f2', item.religion_style); setV('f3', item.culture_style); setV('f4', item.city); setV('f5', item.base_price); setV('f7', item.location_url);
+                }
+            }
+        }
+
+        const setV = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+        function renderFields(type) {
+            const fields = document.getElementById('modal-fields');
+            const modalDiv = document.querySelector('#add-modal .modal');
+            modalDiv.classList.add('modal-wide');
+
+            fields.innerHTML = '<div class="form-group"><div class="form-grid"></div></div>';
+            const grid = fields.querySelector('.form-grid');
+
+            const cityOptions = `<option value="">Select City...</option>
+                <option value="All Cities in Tamilnadu">All Cities in Tamilnadu</option>
+                <option value="Chennai">Chennai</option>
+                <option value="Coimbatore">Coimbatore</option>
+                <option value="Madurai">Madurai</option>
+                <option value="Trichy">Trichy</option>
+                <option value="Salem">Salem</option>
+                <option value="Tirunelveli">Tirunelveli</option>
+                <option value="Tiruppur">Tiruppur</option>
+                <option value="Erode">Erode</option>
+                <option value="Vellore">Vellore</option>
+                <option value="Thoothukudi">Thoothukudi</option>`;
+
+            if (type === 'hall') {
+                grid.innerHTML = `<div class="form-group"><label>Hall Name</label><input type="text" id="f1" class="form-control" required/></div>
+                    <div class="form-group"><label>City</label><select id="f2" class="form-control" required>${cityOptions}</select></div>
+                    <div class="form-group"><label>Capacity</label><input type="number" id="f3" class="form-control" required/></div>
+                    <div class="form-group"><label>Price/Night</label><input type="number" id="f4" class="form-control" required/></div>
+                    <div class="form-group full-width"><label>Address</label><input type="text" id="f5" class="form-control" required/></div>
+                    <div class="form-group full-width"><label>Amenities</label><input type="text" id="f6" class="form-control" placeholder="AC, Parking, WiFi..."/></div>
+                    <div class="form-group"><label>Image (Local)</label><input type="file" id="f_img" class="form-control" accept="image/*"/></div>
+                    <div class="form-group"><label>Location URL (Maps)</label><input type="text" id="f8" class="form-control" placeholder="https://goo.gl/maps/..."/></div>`;
+            } else if (type === 'catering') {
+                grid.innerHTML = `<div class="form-group"><label>Company Name</label><input type="text" id="f1" class="form-control" required/></div>
+                    <div class="form-group"><label>City</label><select id="f2" class="form-control" required>${cityOptions}</select></div>
+                    <div class="form-group"><label>Price Per Plate</label><input type="number" id="f3" class="form-control" required/></div>
+                    <div class="form-group"><label>Image (Local)</label><input type="file" id="f_img" class="form-control" accept="image/*"/></div>
+                    <div class="form-group full-width"><label>Location URL (Maps)</label><input type="text" id="f5" class="form-control" placeholder="https://goo.gl/maps/..."/></div>`;
+            } else if (type === 'luxury_car') {
+                grid.innerHTML = `<div class="form-group"><label>Car Name</label><input type="text" id="f1" class="form-control" required/></div>
+                    <div class="form-group"><label>Model</label><input type="text" id="f2" class="form-control" required/></div>
+                    <div class="form-group"><label>City</label><select id="f3" class="form-control" required>${cityOptions}</select></div>
+                    <div class="form-group"><label>Rent Per Day (₹)</label><input type="number" id="f_rent" class="form-control" required/></div>
+                    <div class="form-group"><label>Rate Per Hour (₹)</label><input type="number" id="f_hourly" class="form-control" placeholder="0" /></div>
+                    <div class="form-group"><label>KM Limit / Day</label><input type="number" id="f_kmlimit" class="form-control" required/></div>
+                    <div class="form-group"><label>Extra Rate/KM (₹)</label><input type="number" id="f4" class="form-control" required/></div>
+                    <div class="form-group"><label>Image (Local)</label><input type="file" id="f_img" class="form-control" accept="image/*"/></div>
+                    <div class="form-group full-width"><label>Location URL (Maps)</label><input type="text" id="f6" class="form-control" placeholder="https://goo.gl/maps/..."/></div>`;
+            } else if (type === 'photography') {
+                grid.innerHTML = `<div class="form-group"><label>Service Name</label><input type="text" id="f1" class="form-control" required/></div>
+                    <div class="form-group"><label>City</label><select id="f2" class="form-control" required>${cityOptions}</select></div>
+                    <div class="form-group"><label>Base Price</label><input type="number" id="f3" class="form-control" required/></div>
+                    <div class="form-group"><label>Price Per Hour</label><input type="number" id="f4" class="form-control" required/></div>
+                    <div class="form-group"><label>Image (Local)</label><input type="file" id="f_img" class="form-control" accept="image/*"/></div>
+                    <div class="form-group full-width"><label>Location URL (Maps)</label><input type="text" id="f6" class="form-control" placeholder="https://goo.gl/maps/..."/></div>`;
+            } else if (type === 'decoration') {
+                grid.innerHTML = `<div class="form-group"><label>Theme Name</label><input type="text" id="f1" class="form-control" required/></div>
+                    <div class="form-group"><label>Religion Style</label><input type="text" id="f2" class="form-control" /></div>
+                    <div class="form-group"><label>Culture Style</label><input type="text" id="f3" class="form-control" /></div>
+                    <div class="form-group"><label>City</label><select id="f4" class="form-control" required>${cityOptions}</select></div>
+                    <div class="form-group"><label>Base Price</label><input type="number" id="f5" class="form-control" required/></div>
+                    <div class="form-group"><label>Image (Local)</label><input type="file" id="f_img" class="form-control" accept="image/*"/></div>
+                    <div class="form-group full-width"><label>Location URL (Maps)</label><input type="text" id="f7" class="form-control" placeholder="https://goo.gl/maps/..."/></div>`;
+            }
+            openModal('add-modal');
+        }
+
+        async function submitAdd(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            const val = (id) => document.getElementById(id)?.value || '';
+            const fileInput = document.getElementById('f_img');
+
+            if (fileInput && fileInput.files[0]) {
+                formData.append('image', fileInput.files[0]);
+            }
+
+            if (_editType === 'hall') {
+                formData.append('name', val('f1')); formData.append('city', val('f2')); formData.append('capacity', val('f3'));
+                formData.append('price_per_night', val('f4')); formData.append('address', val('f5')); formData.append('amenities', val('f6'));
+                formData.append('location_url', val('f8'));
+            } else if (_editType === 'catering') {
+                formData.append('company_name', val('f1')); formData.append('city', val('f2')); formData.append('price_per_plate', val('f3'));
+                formData.append('location_url', val('f5'));
+            } else if (_editType === 'luxury_car') {
+                formData.append('car_name', val('f1')); formData.append('car_model', val('f2')); formData.append('city', val('f3'));
+                formData.append('rate_per_km', val('f4')); formData.append('per_day_rent', val('f_rent')); formData.append('km_limit', val('f_kmlimit')); formData.append('per_hour_rent', val('f_hourly') || '0'); formData.append('location_url', val('f6'));
+            } else if (_editType === 'photography') {
+                formData.append('service_name', val('f1')); formData.append('city', val('f2')); formData.append('base_price', val('f3'));
+                formData.append('price_per_hour', val('f4')); formData.append('location_url', val('f6'));
+            } else if (_editType === 'decoration') {
+                formData.append('theme_name', val('f1')); formData.append('religion_style', val('f2')); formData.append('culture_style', val('f3'));
+                formData.append('city', val('f4')); formData.append('base_price', val('f5')); formData.append('location_url', val('f7'));
+            }
+
+            try {
+                const url = _isEdit ? `/api/vendor/${_editType}/${_editId}` : `/api/vendor/${_editType}`;
+                const res = await fetch(url, {
+                    method: _isEdit ? 'PUT' : 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Error', 'error'); return; }
+                toast('Added successfully!', 'success'); closeModal('add-modal'); loadServices();
+            } catch (e) { toast('Network error', 'error'); }
+        }
+
+        async function doDelete(table, id) {
+            if (!confirm('Are you sure you want to remove this service?')) return;
+            try {
+                const res = await fetch(`/api/vendor/${table}/${id}`, { method: 'DELETE' });
+                if (res.ok) { toast('Removed', 'success'); loadServices(); }
+                else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
+            } catch (e) { toast('Error', 'error'); }
+        }
+
+        function openPriceEdit(type, id, current) {
+            _editId = id; _editType = type;
+            document.getElementById('new-price').value = current;
+            openModal('price-modal');
+        }
+
+        async function submitPrice() {
+            const price = document.getElementById('new-price').value;
+            try {
+                const res = await fetch(`/api/vendor/services/${_editType}/${_editId}/price`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ price })
+                });
+                if (res.ok) { toast('Updated', 'success'); closeModal('price-modal'); loadServices(); }
+                else { const d = await res.json(); toast(d.error || 'Error', 'error'); }
+            } catch (e) { toast('Error', 'error'); }
+        }
+        function val(id) { return document.getElementById(id).value; }
+    </script>
+</body>
+
+</html>

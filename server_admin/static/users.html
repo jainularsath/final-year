@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Users – Admin</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div><a class="sidebar-link" href="/index.html"><span
+                    class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link" href="/halls.html"><span class="icon">🏛️</span>Halls</a><a class="sidebar-link"
+                href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a><a class="sidebar-link"
+                href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link" href="/vendors.html"><span class="icon">🏪</span>Vendors</a>
+            <a class="sidebar-link active" href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">Platform Users</div>
+            <p class="page-subtitle">All registered customer accounts</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Registered</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-body">
+                        <tr>
+                            <td colspan="6" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const r = await fetch('/api/me'); if (!r.ok) { location.href = '/login.html'; return; } loadUsers();
+        });
+        async function loadUsers() {
+            const tbody = document.getElementById('users-body');
+            try {
+                const users = await fetch('/api/admin/users').then(r => r.json());
+                if (!users.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No users found.</td></tr>'; return; }
+                tbody.innerHTML = users.map(u => `<tr>
+        <td>#${u.id}</td><td><strong>${esc(u.name)}</strong></td><td>${esc(u.email)}</td>
+        <td>${esc(u.phone || '—')}</td><td>${statusBadge(u.status)}</td><td>${formatDate(u.created_at)}</td>
+      </tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load.</td></tr>'; }
+        }
+    </script>
+</body>
+
+</html>

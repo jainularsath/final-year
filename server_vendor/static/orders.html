@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>My Orders – Vendor Portal</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🏪 <span>Vendor</span></div>
+            <div class="sidebar-section">Menu</div>
+            <a class="sidebar-link" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <a class="sidebar-link active" href="/orders.html"><span class="icon">📋</span>My Orders</a>
+            <a class="sidebar-link" href="/services.html"><span class="icon">🛍️</span>My Services</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link" href="#" onclick="openModal('pw-modal-overlay');return false;"><span
+                    class="icon">🔑</span>Security</a>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">My Orders</div>
+            <p class="page-subtitle">Manage all incoming bookings for your services</p>
+
+            <div class="filter-bar">
+                <div class="form-group"><label>Status</label>
+                    <select id="f-status" class="form-control" onchange="loadOrders()">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending Approval</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Service</th>
+                            <th>Type</th>
+                            <th>Customer</th>
+                            <th>Phone</th>
+                            <th>Date</th>
+                            <th>Guests</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-body">
+                        <tr>
+                            <td colspan="10" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const SERVICE_ICONS = { hall: '🏛️', catering: '🍽️', luxury_car: '🚗', photography: '📸', decorations: '🌸' };
+        document.addEventListener('DOMContentLoaded', async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) { location.href = '/login.html'; return; }
+            loadOrders();
+        });
+
+        async function loadOrders() {
+            const status = document.getElementById('f-status').value;
+            const tbody = document.getElementById('orders-body');
+            tbody.innerHTML = '<tr><td colspan="10" class="loading-state"><div class="spinner"></div></td></tr>';
+            let url = '/api/vendor/orders?';
+            if (status) url += `status=${status}`;
+            try {
+                const orders = await fetch(url).then(r => r.json());
+                if (!orders.length) { tbody.innerHTML = '<tr><td colspan="10" class="empty-state">No orders found.</td></tr>'; return; }
+                tbody.innerHTML = orders.map(o => `
+        <tr>
+          <td>#${o.id}</td>
+          <td>${SERVICE_ICONS[o.service_type] || '📦'} ${esc((o.service_name || '').substring(0, 22))}</td>
+          <td><span class="badge">${esc(o.service_type.replace('_', ' '))}</span></td>
+          <td>${esc(o.customer_name || '—')}</td>
+          <td>${esc(o.customer_phone || '—')}</td>
+          <td>${formatDate(o.date)}</td>
+          <td>${o.total_people || '—'}</td>
+          <td>${formatCurrency(o.total_amount)}</td>
+          <td>${statusBadge(o.status)}</td>
+          <td style="display:flex;gap:.3rem;flex-wrap:wrap">
+            ${(o.status === 'pending' || o.status === 'paid') ? `<button class="btn btn-success btn-sm" onclick="updateStatus(${o.id},'confirmed',this)">Accept</button><button class="btn btn-danger btn-sm" onclick="updateStatus(${o.id},'cancelled',this)">Reject</button>` : ''}
+            ${o.status === 'confirmed' ? `<button class="btn btn-secondary btn-sm" onclick="updateStatus(${o.id},'completed',this)">✓ Complete</button><button class="btn btn-danger btn-sm" onclick="updateStatus(${o.id},'cancelled',this)">Cancel</button>` : ''}
+          </td>
+        </tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load orders.</td></tr>'; }
+        }
+
+        async function updateStatus(id, status, btn) {
+            btn.disabled = true;
+            try {
+                const res = await fetch(`/api/vendor/orders/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status })
+                });
+                const data = await res.json();
+                if (!res.ok) { toast(data.error || 'Failed', 'error'); return; }
+                toast(`Order ${status}! ✅`, 'success');
+                loadOrders();
+            } catch (e) { toast('Network error', 'error'); }
+            finally { btn.disabled = false; }
+        }
+    </script>
+</body>
+
+</html>

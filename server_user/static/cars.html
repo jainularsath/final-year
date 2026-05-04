@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Luxury Cars – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html" class="active">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <div style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Luxury Cars</h1>
+            <p>Arrive in style — premium vehicles for your big day</p>
+        </div>
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" id="f-city" class="form-control" placeholder="Chennai, Madurai…" />
+            </div>
+            <div class="form-group">
+                <label>Decorated</label>
+                <select id="f-decorated" class="form-control">
+                    <option value="">All</option>
+                    <option value="true">With Floral Décor</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadCars()">🔍 Search</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+        <div id="results-count" style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1rem"></div>
+        <div class="grid-cards" id="cars-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading luxury cars…</p>
+            </div>
+        </div>
+    </main>
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book a luxury car.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            if (params.get('city')) document.getElementById('f-city').value = params.get('city');
+            loadCars();
+        });
+
+        async function loadCars() {
+            const city = document.getElementById('f-city').value.trim();
+            const decorated = document.getElementById('f-decorated').value;
+            const grid = document.getElementById('cars-grid');
+            grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching…</p></div>';
+            let url = '/api/cars?';
+            if (city) url += `city=${encodeURIComponent(city)}&`;
+            if (decorated) url += `decorated=${decorated}&`;
+            try {
+                const items = await fetch(url).then(r => r.json());
+                document.getElementById('results-count').textContent = `${items.length} car(s) found`;
+                if (!items.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🚗</div><p>No luxury cars found.</p></div>'; return; }
+                grid.innerHTML = items.map(c => {
+                    const imgHtml = c.image_url ? `<img src="${esc(c.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` : `<div class="card-img-placeholder" style="font-size:4rem">🚗</div>`;
+                    return `
+        <div class="card service-card" onclick="bookService(${c.id},'luxury_car')">
+          ${imgHtml}
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <div>${esc(c.car_name)} <span style="color:var(--clr-muted);font-weight:400">${esc(c.car_model)}</span></div>
+              ${c.location_url ? `<a href="${esc(c.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+          </div>
+          <div class="card-city">📍 ${esc(c.city)}</div>
+          <div class="card-meta">
+            <span class="badge">👨‍✈️ Seats ${c.capacity || 4}</span>
+            ${c.with_decorations ? '<span class="badge badge-gold">🌸 Decorated</span>' : ''}
+            ${c.vendor_name ? `<span class="badge">${esc(c.vendor_name)}</span>` : ''}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+            <div class="card-price">
+              <span class="amount">₹${Number(c.per_day_rent || 0).toLocaleString()}</span><span class="unit">/day</span>
+              ${c.per_hour_rent && c.per_hour_rent > 0 ? `<br/><span style="font-size:.75rem;color:var(--clr-muted)">₹${Number(c.per_hour_rent).toLocaleString()}/hr available</span>` : ''}
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${c.id},'luxury_car')">Book Now</button>
+          </div>
+        </div>`;
+                }).join('');
+            } catch (e) { grid.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
+        }
+
+        function clearFilters() {
+            document.getElementById('f-city').value = '';
+            document.getElementById('f-decorated').value = '';
+            loadCars();
+        }
+    </script>
+</body>
+
+</html>

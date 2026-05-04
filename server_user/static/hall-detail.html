@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Hall Details – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        .detail-layout {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 2rem;
+        }
+
+        .detail-hero {
+            height: 320px;
+            border-radius: var(--radius-lg);
+            background: var(--clr-surface2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 6rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .amenity-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-top: .75rem;
+        }
+
+        .booking-sidebar {
+            position: sticky;
+            top: 88px;
+        }
+
+        .booking-box {
+            background: var(--clr-surface);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+        }
+
+        .price-big {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--clr-gold);
+        }
+
+        @media(max-width:900px) {
+            .detail-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .booking-sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html" class="active">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <a href="/halls.html"
+            style="color:var(--clr-muted);font-size:.9rem;display:inline-flex;align-items:center;gap:.3rem;margin-bottom:1.5rem">←
+            Back to Halls</a>
+        <div id="detail-content">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading hall details…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book this hall.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const hallId = new URLSearchParams(location.search).get('id');
+        document.addEventListener('DOMContentLoaded', async () => {
+            initNav();
+            if (!hallId) { document.getElementById('detail-content').innerHTML = '<div class="empty-state"><p>Hall not found</p></div>'; return; }
+            try {
+                const h = await fetch(`/api/halls/${hallId}`).then(r => r.json());
+                let name = esc(h.name);
+                if (name.toLowerCase().includes('elite')) name = `<span class="elite-text">${name}</span>`;
+                if (name.toLowerCase().includes('grand')) name = `<span class="grand-text">${name}</span>`;
+                document.title = `${h.name} – TN Events`;
+                const heroHtml = h.image_url ?
+                    `<div class="detail-hero" style="background-image:url('${esc(h.image_url)}');background-size:cover;background-position:center;border-radius:var(--radius-md)"></div>` :
+                    `<div class="detail-hero">🏛️</div>`;
+
+                document.getElementById('detail-content').innerHTML = `
+        <div class="detail-layout">
+          <div>
+            ${heroHtml}
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.5rem">
+                <h1 style="font-family:'Outfit',sans-serif;font-size:2rem;font-weight:800">${name}</h1>
+                ${h.location_url ? `<a href="${esc(h.location_url)}" target="_blank" class="maps-logo-btn" style="margin-top:.5rem">
+                    <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" alt="Google Maps"> Google Maps</a>` : ''}
+            </div>
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;color:var(--clr-muted);margin-bottom:1.5rem;font-size:.95rem">
+              <span>📍 ${esc(h.city)}</span>
+              <span>👥 Up to ${h.capacity} guests</span>
+              ${h.vendor_name ? `<span>🤝 Vendor: ${esc(h.vendor_name)}</span>` : ''}
+              ${h.vendor_phone ? `<span style="color:var(--clr-gold)">📞 Contact: ${esc(h.vendor_phone)}</span>` : ''}
+            </div>
+            ${h.address ? `<p style="margin-bottom:1rem;"><strong style="color:var(--clr-text)">Address:</strong> ${esc(h.address)}</p>` : ''}
+            <h3 style="margin-bottom:.75rem;font-family:'Outfit',sans-serif">Amenities</h3>
+            <div class="amenity-list">
+              ${(h.amenities || '').split(',').filter(a => a.trim()).map(a => `<span class="badge badge-gold">✓ ${esc(a.trim())}</span>`).join('') || '<p style="color:var(--clr-muted)">No amenities listed.</p>'}
+            </div>
+            ${h.latitude && h.longitude ? `
+              <div style="margin-top:1.5rem">
+                <h3 style="margin-bottom:.75rem;font-family:'Outfit',sans-serif">Location</h3>
+                <div style="background:var(--clr-surface2);border-radius:var(--radius-md);padding:1rem;color:var(--clr-muted)">
+                  📍 Lat: ${h.latitude}, Lon: ${h.longitude}<br/>
+                  <a href="https://maps.google.com/?q=${h.latitude},${h.longitude}" target="_blank" class="maps-logo-btn" style="margin-top:.75rem">
+                    <img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png" alt="Google Maps"> Maps</a>
+                </div>
+              </div>` : ''}
+          </div>
+          <div class="booking-sidebar">
+            <div class="booking-box">
+              <div class="price-big">₹${Number(h.price_per_night).toLocaleString()}</div>
+              <div style="color:var(--clr-muted);font-size:.85rem;margin-bottom:1.5rem">per night</div>
+              <div class="form-group">
+                <label>Event Date</label>
+                <input type="date" id="book-date" class="form-control" min="${new Date().toISOString().split('T')[0]}"/>
+              </div>
+              <div class="form-group">
+                <label>Number of Guests</label>
+                <input type="number" id="book-guests" class="form-control" placeholder="100" max="${h.capacity}" min="1"/>
+              </div>
+              <div class="form-group">
+                <label>Special Notes</label>
+                <textarea id="book-notes" class="form-control" rows="2" placeholder="Any special requirements…" style="resize:vertical"></textarea>
+              </div>
+              <div style="background:var(--clr-surface2);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;font-size:.9rem">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+                  <span style="color:var(--clr-muted)">Hall charge</span>
+                  <span>₹${Number(h.price_per_night).toLocaleString()}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-weight:700;border-top:1px solid var(--clr-border);padding-top:.4rem">
+                  <span>Advance (5%)</span>
+                  <span style="color:var(--clr-gold)">₹${Math.round(h.price_per_night * 0.05).toLocaleString()}</span>
+                </div>
+              </div>
+              <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center" onclick="bookWithDetails(${h.id},'hall')">
+                🎉 Reserve Now
+              </button>
+            </div>
+          </div>
+        </div>`;
+            } catch (e) {
+                document.getElementById('detail-content').innerHTML = '<div class="empty-state"><p>Failed to load hall details.</p></div>';
+            }
+        });
+
+        async function confirmBooking(hallId, price) {
+            // ... (keep existing if needed, but it seems unused)
+        }
+
+        function bookWithDetails(id, type) {
+            const date = document.getElementById('book-date').value;
+            const guests = document.getElementById('book-guests').value;
+            const notes = document.getElementById('book-notes').value;
+
+            let url = `/booking.html?service_type=${type}&service_id=${id}`;
+            if (date) url += `&date=${encodeURIComponent(date)}`;
+            if (guests) url += `&guests=${encodeURIComponent(guests)}`;
+            if (notes) url += `&notes=${encodeURIComponent(notes)}`;
+
+            if (_currentUser) {
+                location.href = url;
+            } else {
+                sessionStorage.setItem('booking_redirect', url);
+                openModal('login-modal');
+            }
+        }
+    </script>
+</body>
+
+</html>

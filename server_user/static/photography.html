@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Photography – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html" class="active">Photography</a><a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <div style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Photography Services</h1>
+            <p>Capture every precious moment with Tamil Nadu's best photographers</p>
+        </div>
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" id="f-city" class="form-control" placeholder="Chennai, Trichy…" />
+            </div>
+            <button class="btn btn-primary" onclick="loadPhotography()">🔍 Search</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+        <div id="results-count" style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1rem"></div>
+        <div class="grid-cards" id="photo-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading photographers…</p>
+            </div>
+        </div>
+    </main>
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book a photography service.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            if (params.get('city')) document.getElementById('f-city').value = params.get('city');
+            loadPhotography();
+        });
+
+        async function loadPhotography() {
+            const city = document.getElementById('f-city').value.trim();
+            const grid = document.getElementById('photo-grid');
+            grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching…</p></div>';
+            let url = '/api/photography?';
+            if (city) url += `city=${encodeURIComponent(city)}&`;
+            try {
+                const items = await fetch(url).then(r => r.json());
+                document.getElementById('results-count').textContent = `${items.length} studio(s) found`;
+                if (!items.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-icon">📸</div><p>No photographers found.</p></div>'; return; }
+                grid.innerHTML = items.map(p => {
+                    const imgHtml = p.image_url ? `<img src="${esc(p.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` : `<div class="card-img-placeholder" style="font-size:4rem">📸</div>`;
+                    return `
+        <div class="card service-card" onclick="bookService(${p.id},'photography')">
+          ${imgHtml}
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+              <div>${esc(p.service_name)}</div>
+              ${p.location_url ? `<a href="${esc(p.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+          </div>
+          <div class="card-city">📍 ${esc(p.city)}</div>
+          <div class="card-meta">
+            ${p.vendor_name ? `<span class="badge">${esc(p.vendor_name)}</span>` : ''}
+            <span class="badge badge-blue">⏱️ ₹${Number(p.price_per_hour).toLocaleString()}/hr</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+            <div class="card-price"><span class="amount">₹${Number(p.base_price).toLocaleString()}</span><span class="unit">base</span></div>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${p.id},'photography')">Book Now</button>
+          </div>
+        </div>`;
+                }).join('');
+            } catch (e) { grid.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
+        }
+
+        function clearFilters() {
+            document.getElementById('f-city').value = '';
+            loadPhotography();
+        }
+    </script>
+</body>
+
+</html>

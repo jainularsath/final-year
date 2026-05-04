@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Booking Successful – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        .success-container {
+            text-align: center;
+            padding: 4rem 2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .success-icon {
+            font-size: 5rem;
+            color: var(--clr-green);
+            margin-bottom: 1.5rem;
+            animation: scaleUp 0.5s ease-out;
+        }
+
+        @keyframes scaleUp {
+            from {
+                transform: scale(0);
+            }
+
+            to {
+                transform: scale(1);
+            }
+        }
+
+        .booking-card {
+            background: var(--clr-surface);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-top: 2rem;
+            text-align: left;
+            box-shadow: var(--shadow-card);
+        }
+
+        .booking-id {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--clr-gold);
+            margin-bottom: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: .75rem;
+            border-bottom: 1px solid var(--clr-border);
+            padding-bottom: .5rem;
+        }
+
+        .detail-label {
+            color: var(--clr-muted);
+            font-size: .9rem;
+        }
+
+        .detail-value {
+            font-weight: 600;
+            color: var(--clr-text);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+        </div>
+    </nav>
+    <main class="container">
+        <div class="success-container">
+            <div class="success-icon">✅</div>
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800;font-size:2.5rem">Booking
+                Confirmed!</h1>
+            <p style="color:var(--clr-muted);font-size:1.1rem">Thank you for choosing TN Events. Your booking request
+                has been sent to the vendor.</p>
+
+            <div class="booking-card" id="booking-details">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading booking details…</p>
+                </div>
+            </div>
+
+            <div style="margin-top:2.5rem;display:flex;gap:1rem;justify-content:center">
+                <a href="/my-orders.html" class="btn btn-primary btn-lg">View My Orders</a>
+                <a href="/index.html" class="btn btn-secondary btn-lg">Back to Home</a>
+            </div>
+        </div>
+    </main>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            const bookingId = params.get('id');
+            if (!bookingId) { location.href = '/index.html'; return; }
+            loadBooking(bookingId);
+        });
+
+        async function loadBooking(id) {
+            const card = document.getElementById('booking-details');
+            try {
+                // We fetch from the specific booking endpoint if we had one, or filter from all
+                const orders = await fetch('/api/bookings').then(r => r.json());
+                const booking = orders.find(o => o.id == id);
+                if (!booking) { card.innerHTML = '<p>Booking details not found.</p>'; return; }
+
+                card.innerHTML = `
+        <div class="booking-id">Booking ID: #${booking.id}</div>
+        <div class="detail-row">
+          <span class="detail-label">Service</span>
+          <span class="detail-value">${esc(booking.service_name)} (${esc(booking.service_type)})</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Event Date</span>
+          <span class="detail-value">${formatDate(booking.date)}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Total Amount</span>
+          <span class="detail-value" style="color:var(--clr-gold)">₹${Number(booking.total_amount).toLocaleString()}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Advance Paid</span>
+          <span class="detail-value">₹${Number(booking.advance_amount).toLocaleString()}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Status</span>
+          <span>${statusBadge(booking.status)}</span>
+        </div>
+        <div style="margin-top:1rem;font-size:.85rem;color:var(--clr-muted);font-style:italic">
+          * A confirmation email with receipt has been sent to your registered email address.
+        </div>
+        <div style="margin-top:1.5rem">
+            <a href="/api/bookings/${booking.id}/invoice" class="btn btn-outline" style="width:100%;justify-content:center">
+                <span style="margin-right:0.5rem">📄</span> Download PDF Invoice
+            </a>
+        </div>
+      `;
+            } catch (e) { card.innerHTML = '<p>Failed to load booking details.</p>'; }
+        }
+    </script>
+</body>
+
+</html>

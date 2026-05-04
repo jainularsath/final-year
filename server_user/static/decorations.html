@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Decorations – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html" class="active">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <div style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Decorations</h1>
+            <p>Hindu, Christian, Muslim & more — stunning décor for every tradition</p>
+        </div>
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" id="f-city" class="form-control" placeholder="Chennai, Salem…" />
+            </div>
+            <div class="form-group">
+                <label>Style / Religion</label>
+                <input type="text" id="f-style" class="form-control" placeholder="Hindu, Christian…" />
+            </div>
+            <button class="btn btn-primary" onclick="loadDecorations()">🔍 Search</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+        <div id="results-count" style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1rem"></div>
+        <div class="grid-cards" id="decor-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading decoration themes…</p>
+            </div>
+        </div>
+    </main>
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book a decoration service.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const religionEmoji = { Hindu: '🕉️', Christian: '✝️', Muslim: '☪️' };
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            if (params.get('city')) document.getElementById('f-city').value = params.get('city');
+            loadDecorations();
+        });
+
+        async function loadDecorations() {
+            const city = document.getElementById('f-city').value.trim();
+            const style = document.getElementById('f-style').value.trim();
+            const grid = document.getElementById('decor-grid');
+            grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching…</p></div>';
+            let url = '/api/decorations?';
+            if (city) url += `city=${encodeURIComponent(city)}&`;
+            if (style) url += `style=${encodeURIComponent(style)}&`;
+            try {
+                const items = await fetch(url).then(r => r.json());
+                document.getElementById('results-count').textContent = `${items.length} theme(s) found`;
+                if (!items.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🌸</div><p>No decoration themes found.</p></div>'; return; }
+                grid.innerHTML = items.map(d => {
+                    const emoji = religionEmoji[d.religion_style] || '🌸';
+                    const imgHtml = d.image_url ? `<img src="${esc(d.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` : `<div class="card-img-placeholder" style="font-size:4rem">${emoji}</div>`;
+                    return `
+          <div class="card service-card" onclick="bookService(${d.id},'decorations')">
+            ${imgHtml}
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+                <div>${esc(d.theme_name)}</div>
+                ${d.location_url ? `<a href="${esc(d.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+            </div>
+            <div class="card-city">📍 ${esc(d.city)}</div>
+            <div class="card-meta">
+              <span class="badge badge-purple">${emoji} ${esc(d.religion_style || '')}</span>
+              ${d.culture_style ? `<span class="badge">${esc(d.culture_style)}</span>` : ''}
+              ${d.vendor_name ? `<span class="badge">${esc(d.vendor_name)}</span>` : ''}
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+              <div class="card-price"><span class="amount">₹${Number(d.base_price).toLocaleString()}</span><span class="unit">base</span></div>
+              <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${d.id},'decorations')">Book Now</button>
+            </div>
+          </div>`;
+                }).join('');
+            } catch (e) { grid.innerHTML = '<div class="empty-state"><p>Failed to load.</p></div>'; }
+        }
+
+        function clearFilters() {
+            document.getElementById('f-city').value = '';
+            document.getElementById('f-style').value = '';
+            loadDecorations();
+        }
+    </script>
+</body>
+
+</html>

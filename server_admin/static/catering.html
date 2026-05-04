@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Manage Catering – Admin</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div><a class="sidebar-link" href="/index.html"><span
+                    class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link" href="/halls.html"><span class="icon">🏛️</span>Halls</a>
+            <a class="sidebar-link active" href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a>
+            <a class="sidebar-link" href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link" href="/vendors.html"><span class="icon">🏪</span>Vendors</a>
+            <a class="sidebar-link" href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">Manage Catering</div>
+            <p class="page-subtitle">View or remove catering companies</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Company</th>
+                            <th>City</th>
+                            <th>Type</th>
+                            <th>Price/Plate</th>
+                            <th>Vendor</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cat-body">
+                        <tr>
+                            <td colspan="7" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => { const r = await fetch('/api/me'); if (!r.ok) { location.href = '/login.html'; return; } loadCat(); });
+        async function loadCat() {
+            const tbody = document.getElementById('cat-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><div class="spinner"></div></td></tr>';
+            try {
+                const items = await fetch('/api/admin/catering').then(r => r.json());
+                if (!items.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No catering companies found.</td></tr>'; return; }
+                tbody.innerHTML = items.map(c => `<tr><td>#${c.id}</td><td><strong>${esc(c.company_name)}</strong></td><td>${esc(c.city)}</td>
+        <td><span class="badge badge-green">${esc(c.veg_non_veg)}</span></td>
+        <td style="color:var(--clr-gold);font-weight:700">₹${Number(c.price_per_plate).toLocaleString()}</td>
+        <td>${esc(c.vendor_name || '—')}</td>
+        <td>${statusBadge(c.status || 'pending')}</td>
+        <td style="display:flex;gap:.3rem">
+          ${(!c.status || c.status === 'pending') ? `
+            <button class="btn btn-sm" style="background:#22c55e" onclick="updateStatus('catering', ${c.id}, 'approved')">Approve</button>
+            <button class="btn btn-sm" style="background:#ef4444" onclick="updateStatus('catering', ${c.id}, 'rejected')">Reject</button>
+          ` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteCat(${c.id},this)">🗑 Remove Service</button>
+        </td></tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed.</td></tr>'; }
+        }
+        async function deleteCat(id, btn) {
+            if (!confirm('Delete this catering company?')) return; btn.disabled = true;
+            try { await fetch(`/api/admin/catering/${id}`, { method: 'DELETE' }); toast('Deleted', 'success'); loadCat(); }
+            catch (e) { toast('Network error', 'error'); } finally { btn.disabled = false; }
+        }
+
+        async function updateStatus(stype, id, status) {
+            if (!confirm(`Are you sure you want to mark this catering as ${status}?`)) return;
+            try {
+                const res = await fetch(`/api/admin/${stype}/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (res.ok) { toast(`Catering ${status}`, 'success'); loadCat(); }
+                else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
+            } catch (e) { toast('Network error', 'error'); }
+        }
+    </script>
+</body>
+
+</html>

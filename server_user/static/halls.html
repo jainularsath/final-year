@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Banquet Halls – TN Events</title>
+    <meta name="description"
+        content="Browse and book banquet halls across Tamil Nadu for weddings, functions and events." />
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a>
+            <a href="/halls.html" class="active">Halls</a>
+            <a href="/catering.html">Catering</a>
+            <a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a>
+            <a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+
+    <main class="container section">
+        <div style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Banquet Halls</h1>
+            <p>Find the perfect venue for your celebration</p>
+        </div>
+
+        <!-- FILTERS -->
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" id="f-city" class="form-control" placeholder="Chennai, Madurai…" />
+            </div>
+            <div class="form-group">
+                <label>Min Capacity</label>
+                <input type="number" id="f-cap" class="form-control" placeholder="100" />
+            </div>
+            <div class="form-group">
+                <label>Max Price (₹/night)</label>
+                <input type="number" id="f-price" class="form-control" placeholder="100000" />
+            </div>
+            <button class="btn btn-primary" onclick="loadHalls()">🔍 Search</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+
+        <div id="results-count" style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1rem"></div>
+        <div class="grid-cards" id="halls-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading halls…</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book a hall.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            // Pre-fill city from URL
+            const params = new URLSearchParams(location.search);
+            if (params.get('city')) document.getElementById('f-city').value = params.get('city');
+            loadHalls();
+        });
+
+        async function loadHalls() {
+            const city = document.getElementById('f-city').value.trim();
+            const cap = document.getElementById('f-cap').value;
+            const price = document.getElementById('f-price').value;
+            const grid = document.getElementById('halls-grid');
+            grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching…</p></div>';
+
+            let url = '/api/halls?';
+            if (city) url += `city=${encodeURIComponent(city)}&`;
+            if (cap) url += `capacity=${cap}&`;
+            if (price) url += `max_price=${price}&`;
+
+            try {
+                const halls = await fetch(url).then(r => r.json());
+                document.getElementById('results-count').textContent = `${halls.length} hall(s) found`;
+                if (!halls.length) {
+                    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🏛️</div><p>No halls found. Try different filters.</p></div>';
+                    return;
+                }
+                grid.innerHTML = halls.map(h => {
+                    let name = esc(h.name);
+                    if (name.toLowerCase().includes('elite')) name = `<span class="elite-text">${name}</span>`;
+                    if (name.toLowerCase().includes('grand')) name = `<span class="grand-text">${name}</span>`;
+
+                    const imgHtml = h.image_url ? `<img src="${esc(h.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` :
+                        `<div class="card-img-placeholder">🏛️</div>`;
+
+                    return `
+        <div class="card service-card" onclick="location.href='/hall-detail.html?id=${h.id}'">
+          ${imgHtml}
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+            ${name}
+            ${h.location_url ? `<a href="${esc(h.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+          </div>
+          <div class="card-city">📍 ${esc(h.city)}</div>
+          <div class="card-meta">
+            <span class="badge">👥 ${h.capacity} guests</span>
+            ${h.amenities ? h.amenities.split(',').slice(0, 2).map(a => `<span class="badge">${esc(a.trim())}</span>`).join('') : ''}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+            <div class="card-price"><span class="amount">₹${Number(h.price_per_night).toLocaleString()}</span><span class="unit">/night</span></div>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${h.id},'hall')">Book Now</button>
+          </div>
+        </div>`;
+                }).join('');
+            } catch (e) {
+                grid.innerHTML = '<div class="empty-state"><p>Failed to load. Is the backend running on port 3000?</p></div>';
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('f-city').value = '';
+            document.getElementById('f-cap').value = '';
+            document.getElementById('f-price').value = '';
+            loadHalls();
+        }
+    </script>
+</body>
+
+</html>

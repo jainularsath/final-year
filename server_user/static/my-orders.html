@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>My Orders – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        .order-card {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+        }
+
+        .order-row {
+            background: var(--clr-surface);
+            border: 1px solid var(--clr-border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            transition: all var(--transition);
+        }
+
+        .order-row:hover {
+            border-color: rgba(124, 92, 191, .3);
+        }
+
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .order-service {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--clr-text);
+        }
+
+        .order-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .6rem;
+            margin-top: .5rem;
+            font-size: .85rem;
+            color: var(--clr-muted);
+        }
+
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: .5rem;
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid var(--clr-border);
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" class="active" id="nav-orders">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <div
+            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;flex-wrap:wrap;gap:1rem">
+            <div>
+                <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">My Orders</h1>
+                <p>Track all your event bookings</p>
+            </div>
+            <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <button class="btn btn-secondary btn-sm" onclick="filterOrders('all')" id="f-all">All</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterOrders('pending')"
+                    id="f-pending">Pending</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterOrders('confirmed')"
+                    id="f-confirmed">Confirmed</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterOrders('completed')"
+                    id="f-completed">Completed</button>
+                <button class="btn btn-secondary btn-sm" onclick="filterOrders('cancelled')"
+                    id="f-cancelled">Cancelled</button>
+            </div>
+        </div>
+
+        <!-- Stat Summary -->
+        <div class="stat-grid" id="orders-stats" style="margin-bottom:2rem"></div>
+
+        <div id="orders-container" class="order-card">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading your bookings…</p>
+            </div>
+        </div>
+    </main>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        const SERVICE_ICONS = { hall: '🏛️', catering: '🍽️', luxury_car: '🚗', photography: '📸', decorations: '🌸' };
+        let _allOrders = [];
+        let _activeFilter = 'all';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Must be logged in
+            try {
+                const res = await fetch('/api/me');
+                if (!res.ok) { location.href = '/login.html'; return; }
+                _currentUser = await res.json();
+                initNav();
+            } catch (e) { location.href = '/login.html'; return; }
+            loadOrders();
+        });
+
+        async function loadOrders() {
+            try {
+                const orders = await fetch('/api/bookings').then(r => {
+                    if (r.status === 401) { location.href = '/login.html'; return []; }
+                    return r.json();
+                });
+                _allOrders = orders || [];
+                renderStats(_allOrders);
+                filterOrders('all');
+            } catch (e) {
+                document.getElementById('orders-container').innerHTML = '<div class="empty-state"><p>Failed to load orders.</p></div>';
+            }
+        }
+
+        function renderStats(orders) {
+            const counts = { total: orders.length, pending: 0, confirmed: 0, completed: 0, cancelled: 0 };
+            let totalSpend = 0;
+            orders.forEach(o => {
+                let s = o.status;
+                if (s === 'cancelled_no_refund') s = 'cancelled';
+                counts[s] = (counts[s] || 0) + 1;
+                totalSpend += Number(o.total_amount) || 0;
+            });
+            document.getElementById('orders-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon gold">📋</div><div class="stat-info"><div class="value">${counts.total}</div><div class="label">Total</div></div></div>
+      <div class="stat-card"><div class="stat-icon gold">⏳</div><div class="stat-info"><div class="value">${counts.pending}</div><div class="label">Pending</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div class="stat-info"><div class="value">${counts.confirmed}</div><div class="label">Confirmed</div></div></div>
+      <div class="stat-card"><div class="stat-icon blue">🎉</div><div class="stat-info"><div class="value">${counts.completed}</div><div class="label">Completed</div></div></div>
+      <div class="stat-card"><div class="stat-icon purple">💰</div><div class="stat-info"><div class="value">₹${totalSpend.toLocaleString()}</div><div class="label">Total Value</div></div></div>`;
+        }
+
+        function filterOrders(status) {
+            _activeFilter = status;
+            // Update button styles
+            ['all', 'pending', 'confirmed', 'completed', 'cancelled'].forEach(s => {
+                const btn = document.getElementById(`f-${s}`);
+                if (btn) btn.className = `btn btn-sm ${s === status ? 'btn-primary' : 'btn-secondary'}`;
+            });
+            const filtered = status === 'all' ? _allOrders : _allOrders.filter(o => {
+                if (status === 'cancelled') return o.status === 'cancelled' || o.status === 'cancelled_no_refund';
+                return o.status === status;
+            });
+            renderOrders(filtered);
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-container');
+            if (!orders.length) {
+                container.innerHTML = `<div class="empty-state"><div class="empty-icon">${_activeFilter === 'all' ? '📋' : '🔍'}</div><p>No ${_activeFilter === 'all' ? '' : _activeFilter} orders found.</p>${_activeFilter === 'all' ? `<a href="/halls.html" class="btn btn-primary btn-sm" style="margin-top:1rem">Browse Services</a>` : ''}</div>`;
+                return;
+            }
+            container.innerHTML = orders.map(o => `
+      <div class="order-row" id="order-${o.id}">
+        <div class="order-header">
+          <div>
+            <div class="order-service">${SERVICE_ICONS[o.service_type] || '📦'} ${esc(o.service_name || o.service_type)} <span style="color:var(--clr-muted);font-weight:400;font-size:.85rem">(${o.service_type.replace('_', ' ')})</span></div>
+            <div class="order-meta">
+              <span>📅 ${formatDate(o.date)}</span>
+              ${o.time ? `<span>🕐 ${o.time}</span>` : ''}
+              ${o.total_people ? `<span>👥 ${o.total_people} guests</span>` : ''}
+              <span>🆔 #${o.id}</span>
+            </div>
+          </div>
+          ${statusBadge(o.status)}
+        </div>
+        ${o.notes ? `<p style="font-size:.85rem;color:var(--clr-muted);background:var(--clr-surface2);padding:.5rem .75rem;border-radius:var(--radius-sm)">📝 ${esc(o.notes)}</p>` : ''}
+        <div class="order-footer">
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <div><div style="font-size:.75rem;color:var(--clr-muted);text-transform:uppercase">Total</div><div style="font-weight:700;color:var(--clr-gold)">₹${Number(o.total_amount || 0).toLocaleString()}</div></div>
+            <div><div style="font-size:.75rem;color:var(--clr-muted);text-transform:uppercase">Advance</div><div style="font-weight:700">₹${Number(o.advance_amount || 0).toLocaleString()}</div></div>
+            <div><div style="font-size:.75rem;color:var(--clr-muted);text-transform:uppercase">Booked On</div><div style="font-weight:500">${formatDate(o.created_at)}</div></div>
+          </div>
+          <div style="display:flex;gap:.5rem">
+            ${(o.status === 'pending' || o.status === 'confirmed') ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder(${o.id})">Cancel</button>` : ''}
+          </div>
+        </div>
+      </div>`).join('');
+        }
+
+        async function cancelOrder(id) {
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+            try {
+                const res = await fetch(`/api/bookings/${id}/cancel`, { method: 'POST' });
+                const data = await res.json();
+                if (!res.ok) {
+                    console.error('Cancel failed:', data.error);
+                    toast(data.error || 'Cannot cancel booking', 'error');
+                    return;
+                }
+                toast('Booking cancelled successfully', 'success');
+                loadOrders();
+            } catch (e) {
+                console.error('Network catch:', e);
+                toast('Action failed. Check your connection.', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>

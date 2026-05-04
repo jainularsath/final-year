@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Vendor Register – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body class="auth-page">
+    <div class="auth-box" style="max-width:480px">
+        <div class="auth-logo">
+            <h1>🏪 Become a <span>Vendor</span></h1>
+            <p>Register your business on TN Events — pending admin approval</p>
+        </div>
+        <div class="err-msg" id="err-msg"></div>
+        <div class="success-box" id="success-box"></div>
+        <form id="reg-form" onsubmit="doRegister(event)">
+            <div class="form-row">
+                <div class="form-group"><label>Full Name</label><input type="text" id="name" class="form-control"
+                        placeholder="Your Name" required /></div>
+                <div class="form-group"><label>Phone</label><input type="tel" id="phone" class="form-control"
+                        placeholder="9xxxxxxxxx" /></div>
+            </div>
+            <div class="form-group"><label>Business Email</label><input type="email" id="email" class="form-control"
+                    placeholder="business@example.com" required /></div>
+            <div class="form-group"><label>Password</label><input type="password" id="password" class="form-control"
+                    placeholder="Min 6 characters" required minlength="6" /></div>
+            <div class="form-group">
+                <label>Service Type</label>
+                <select id="service_type" class="form-control" required>
+                    <option value="" disabled selected>Select your business type</option>
+                    <option value="hall">Wedding / Party Hall</option>
+                    <option value="catering">Catering Service</option>
+                    <option value="luxury_car">Luxury Car Rental</option>
+                    <option value="decoration">Decoration & Themes</option>
+                    <option value="photography">Photography & Videography</option>
+                </select>
+            </div>
+            <div
+                style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.2);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1rem;font-size:.85rem;color:var(--clr-muted)">
+                ⚠️ Your account will be <strong style="color:var(--clr-gold)">pending approval</strong> until an admin
+                reviews and activates it.
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" id="btn-submit"
+                style="width:100%;justify-content:center">Submit Application</button>
+        </form>
+        <div class="divider"></div>
+        <p style="text-align:center;font-size:.9rem;color:var(--clr-muted)">Already have an account? <a
+                href="/login.html">Login</a></p>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        async function doRegister(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-submit'); btn.disabled = true; btn.textContent = 'Submitting…';
+            const err = document.getElementById('err-msg'); err.style.display = 'none';
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        phone: document.getElementById('phone').value,
+                        password: document.getElementById('password').value,
+                        service_type: document.getElementById('service_type').value
+                    })
+                });
+                const data = await res.json();
+                if (!res.ok) { err.textContent = data.error; err.style.display = 'block'; return; }
+                const s = document.getElementById('success-box');
+                s.innerHTML = '✅ Application submitted! An admin will review and approve your account.';
+                s.style.display = 'block';
+                document.getElementById('reg-form').style.display = 'none';
+            } catch (e2) { err.textContent = 'Network error'; err.style.display = 'block'; }
+            finally { btn.disabled = false; btn.textContent = 'Submit Application'; }
+        }
+    </script>
+</body>
+
+</html>

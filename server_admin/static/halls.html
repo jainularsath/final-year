@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Manage Halls – Admin</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="logo">🛡️ <span>Admin</span></div>
+            <div class="sidebar-section">Overview</div>
+            <a class="sidebar-link" href="/index.html"><span class="icon">📊</span>Dashboard</a>
+            <div class="sidebar-section">Services</div>
+            <a class="sidebar-link active" href="/halls.html"><span class="icon">🏛️</span>Halls</a>
+            <a class="sidebar-link" href="/catering.html"><span class="icon">🍽️</span>Catering</a>
+            <a class="sidebar-link" href="/cars.html"><span class="icon">🚗</span>Cars</a>
+            <a class="sidebar-link" href="/photography.html"><span class="icon">📸</span>Photography</a>
+            <a class="sidebar-link" href="/decorations.html"><span class="icon">🌸</span>Decorations</a>
+            <div class="sidebar-section">Users</div>
+            <a class="sidebar-link" href="/vendors.html"><span class="icon">🏪</span>Vendors</a>
+            <a class="sidebar-link" href="/users.html"><span class="icon">👥</span>Users</a>
+            <a class="sidebar-link" href="/bookings.html"><span class="icon">📋</span>All Bookings</a>
+            <div class="sidebar-section">Account</div>
+            <a class="sidebar-link sidebar-logout" href="/api/logout"><span class="icon">🚪</span>Logout</a>
+        </aside>
+        <main class="main-content">
+            <div class="page-title">Manage Halls</div>
+            <p class="page-subtitle">View or remove banquet halls</p>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>City</th>
+                            <th>Capacity</th>
+                            <th>Price/Night</th>
+                            <th>Vendor</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="halls-body">
+                        <tr>
+                            <td colspan="7" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const res = await fetch('/api/me');
+            if (!res.ok) { location.href = '/login.html'; return; }
+            loadHalls();
+        });
+
+        async function loadHalls() {
+            const tbody = document.getElementById('halls-body');
+            tbody.innerHTML = '<tr><td colspan="7" class="loading-state"><div class="spinner"></div></td></tr>';
+            try {
+                const halls = await fetch('/api/admin/halls').then(r => r.json());
+                if (!halls.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No halls found.</td></tr>'; return; }
+                tbody.innerHTML = halls.map(h => `<tr>
+        <td>#${h.id}</td><td><strong>${esc(h.name)}</strong></td><td>${esc(h.city)}</td>
+        <td>${h.capacity}</td><td style="color:var(--clr-gold);font-weight:700">₹${Number(h.price_per_night).toLocaleString()}</td>
+        <td>${esc(h.vendor_name || '—')}</td>
+        <td>${statusBadge(h.status || 'pending')}</td>
+        <td style="display:flex;gap:.3rem">
+          ${(!h.status || h.status === 'pending') ? `
+            <button class="btn btn-sm" style="background:#22c55e" onclick="updateStatus('halls', ${h.id}, 'approved')">Approve</button>
+            <button class="btn btn-sm" style="background:#ef4444" onclick="updateStatus('halls', ${h.id}, 'rejected')">Reject</button>
+          ` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteHall(${h.id},this)">🗑 Remove</button>
+        </td></tr>`).join('');
+            } catch (e) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--clr-muted)">Failed to load.</td></tr>'; }
+        }
+
+        async function deleteHall(id, btn) {
+            if (!confirm('Remove this hall service?')) return;
+            btn.disabled = true;
+            try {
+                await fetch(`/api/admin/halls/${id}`, { method: 'DELETE' });
+                toast('Hall deleted', 'success'); loadHalls();
+            } catch (e) { toast('Network error', 'error'); } finally { btn.disabled = false; }
+        }
+
+        async function updateStatus(stype, id, status) {
+            if (!confirm(`Are you sure you want to mark this as ${status}?`)) return;
+            try {
+                const res = await fetch(`/api/admin/${stype}/${id}/status`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (res.ok) { toast(`Service ${status}`, 'success'); loadHalls(); }
+                else { const d = await res.json(); toast(d.error || 'Failed', 'error'); }
+            } catch (e) { toast('Network error', 'error'); }
+        }
+    </script>
+</body>
+
+</html>

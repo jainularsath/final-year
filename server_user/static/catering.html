@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Catering – TN Events</title>
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="logo">🎊 <span>TN</span>Events</div>
+        <div class="nav-links">
+            <a href="/index.html">Home</a><a href="/halls.html">Halls</a>
+            <a href="/catering.html" class="active">Catering</a><a href="/cars.html">Luxury Cars</a>
+            <a href="/photography.html">Photography</a><a href="/decorations.html">Decorations</a>
+            <a href="/my-orders.html" id="nav-orders" style="display:none">My Orders</a>
+        </div>
+        <div class="nav-auth" id="nav-auth">
+            <a href="/login.html" class="btn btn-secondary btn-sm">Login</a>
+            <a href="/register.html" class="btn btn-primary btn-sm">Sign Up</a>
+        </div>
+    </nav>
+    <main class="container section">
+        <div style="margin-bottom:2rem">
+            <h1 class="section-title" style="font-family:'Outfit',sans-serif;font-weight:800">Catering Services</h1>
+            <p>Delicious meals for every celebration — veg, non-veg & more</p>
+        </div>
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>City</label>
+                <input type="text" id="f-city" class="form-control" placeholder="Chennai, Coimbatore…" />
+            </div>
+            <div class="form-group">
+                <label>Food Type</label>
+                <select id="f-type" class="form-control">
+                    <option value="">All Types</option>
+                    <option value="veg">Vegetarian</option>
+                    <option value="non_veg">Non-Vegetarian</option>
+                    <option value="both">Both</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadCatering()">🔍 Search</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+        <div id="results-count" style="color:var(--clr-muted);font-size:.9rem;margin-bottom:1rem"></div>
+        <div class="grid-cards" id="catering-grid">
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading catering services…</p>
+            </div>
+        </div>
+    </main>
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Login Required</h3><button class="modal-close" onclick="closeModal('login-modal')">✕</button>
+            </div>
+            <p style="margin-bottom:1.5rem">You must log in to book a catering service.</p>
+            <div style="display:flex;gap:.75rem">
+                <a href="/login.html" class="btn btn-primary" style="flex:1;justify-content:center">Login</a>
+                <a href="/register.html" class="btn btn-secondary" style="flex:1;justify-content:center">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <!-- Menu Preview Modal -->
+    <div class="modal-overlay" id="menu-modal">
+        <div class="modal" style="max-width:560px">
+            <div class="modal-header">
+                <h3 id="menu-modal-title">Menu</h3>
+                <button class="modal-close" onclick="closeModal('menu-modal')">✕</button>
+            </div>
+            <div id="menu-modal-body"></div>
+            <div style="margin-top:1.5rem;display:flex;gap:.75rem">
+                <button class="btn btn-primary" style="flex:1;justify-content:center" id="btn-book-catering">Book This
+                    Catering</button>
+            </div>
+        </div>
+    </div>
+    <div class="toast-container" id="toast-container"></div>
+    <script src="/static/common.js"></script>
+    <script>
+        let _activeCateringId = null;
+        document.addEventListener('DOMContentLoaded', () => {
+            initNav();
+            const params = new URLSearchParams(location.search);
+            if (params.get('city')) document.getElementById('f-city').value = params.get('city');
+            loadCatering();
+        });
+
+        async function loadCatering() {
+            const city = document.getElementById('f-city').value.trim();
+            const type = document.getElementById('f-type').value;
+            const grid = document.getElementById('catering-grid');
+            grid.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching…</p></div>';
+            let url = '/api/catering?';
+            if (city) url += `city=${encodeURIComponent(city)}&`;
+            if (type) url += `type=${type}&`;
+            try {
+                const items = await fetch(url).then(r => r.json());
+                document.getElementById('results-count').textContent = `${items.length} caterer(s) found`;
+                if (!items.length) { grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🍽️</div><p>No caterers found.</p></div>'; return; }
+                const typeLabel = { veg: '🌿 Veg', non_veg: '🍗 Non-Veg', both: '🍽️ Veg & Non-Veg' };
+                grid.innerHTML = items.map(c => {
+                    let name = esc(c.company_name);
+                    if (name.toLowerCase().includes('elite')) name = `<span class="elite-text">${name}</span>`;
+                    if (name.toLowerCase().includes('grand')) name = `<span class="grand-text">${name}</span>`;
+
+                    const imgHtml = c.image_url ? `<img src="${esc(c.image_url)}" class="card-img" style="width:100%;height:180px;object-fit:cover;border-radius:var(--radius-sm) var(--radius-sm) 0 0">` :
+                        `<div class="card-img-placeholder">🍽️</div>`;
+
+                    return `
+        <div class="card service-card" onclick="openMenu(${c.id},'${esc(c.company_name)}')">
+          ${imgHtml}
+          <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+            ${name}
+            ${c.location_url ? `<a href="${esc(c.location_url)}" target="_blank" onclick="event.stopPropagation()" class="maps-logo-btn" title="Google Maps"><img src="https://www.gstatic.com/images/branding/product/2x/maps_96dp.png"></a>` : ''}
+          </div>
+          <div class="card-city">📍 ${esc(c.city)}</div>
+          <div class="card-meta">
+            <span class="badge badge-green">${typeLabel[c.veg_non_veg] || c.veg_non_veg}</span>
+            ${c.vendor_name ? `<span class="badge">${esc(c.vendor_name)}</span>` : ''}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.75rem">
+            <div class="card-price"><span class="amount">₹${Number(c.price_per_plate).toLocaleString()}</span><span class="unit">/plate</span></div>
+            <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();bookService(${c.id},'catering')">Book Now</button>
+          </div>
+        </div>`;
+                }).join('');
+            } catch (e) { grid.innerHTML = '<div class="empty-state"><p>Failed to load. Is backend running?</p></div>'; }
+        }
+
+        async function openMenu(catId, name) {
+            _activeCateringId = catId;
+            document.getElementById('menu-modal-title').textContent = name + ' – Menu';
+            document.getElementById('menu-modal-body').innerHTML = '<div class="spinner"></div>';
+            document.getElementById('btn-book-catering').onclick = () => { closeModal('menu-modal'); bookService(catId, 'catering'); };
+            openModal('menu-modal');
+            try {
+                const data = await fetch(`/api/catering/${catId}`).then(r => r.json());
+                const categories = {};
+                (data.menu || []).forEach(item => {
+                    if (!categories[item.category]) categories[item.category] = [];
+                    categories[item.category].push(item);
+                });
+                const catIcons = { main: '🍛', side: '🥗', snack: '🥪', beverage: '☕', ice_cream: '🍦' };
+                let html = `<p style="margin-bottom:1rem;color:var(--clr-muted)">Price per plate: <strong style="color:var(--clr-gold)">₹${Number(data.price_per_plate).toLocaleString()}</strong></p>`;
+                if (Object.keys(categories).length === 0) { html += '<p style="color:var(--clr-muted)">No menu items added yet.</p>'; }
+                for (const [cat, items] of Object.entries(categories)) {
+                    html += `<h4 style="font-family:'Outfit',sans-serif;text-transform:capitalize;margin:.75rem 0 .4rem">${catIcons[cat] || '•'} ${cat.replace('_', ' ')}</h4>`;
+                    html += `<div style="display:flex;flex-direction:column;gap:.3rem">`;
+                    items.forEach(i => {
+                        html += `<div style="display:flex;justify-content:space-between;padding:.4rem .75rem;background:var(--clr-surface2);border-radius:var(--radius-sm)">
+            <span>${esc(i.dish_name)}</span><span style="color:var(--clr-gold)">₹${Number(i.price_per_item).toLocaleString()}</span></div>`;
+                    });
+                    html += '</div>';
+                }
+                document.getElementById('menu-modal-body').innerHTML = html;
+            } catch (e) { document.getElementById('menu-modal-body').innerHTML = '<p style="color:var(--clr-muted)">Failed to load menu.</p>'; }
+        }
+
+        function clearFilters() {
+            document.getElementById('f-city').value = '';
+            document.getElementById('f-type').value = '';
+            loadCatering();
+        }
+    </script>
+</body>
+
+</html>
